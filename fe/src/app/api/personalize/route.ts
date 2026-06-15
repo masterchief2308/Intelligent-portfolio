@@ -55,47 +55,59 @@ function getRoleBasedTemplate(role: string, company?: string) {
   switch (role) {
     case 'hiring':
       return {
-        hero_intro: `Hey recruiter${compStr}! Here's what I've shipped...`,
-        chat_opener: "What role are you hiring for?",
+        personalization_id: 'mock-123',
         visitor_profile: { role: 'hiring', seniority: 'senior', skills: ['Recruiting'] },
-        featured_projects: baseProjects.map(p => ({
-          ...p,
-          why_relevant: p.id === 'iocl-tender-evaluation' ? 'Reduced tender evaluation from 4 weeks to same-day.' : p.why_relevant
-        })),
-        suggested_queries: ["Show me your resume", "What is your tech stack?"]
+        website_config: {
+          hero: { intro: `Hey recruiter${compStr}! Here's what I've shipped...` },
+          featured_projects: baseProjects.map(p => ({
+            ...p,
+            why_relevant: p.id === 'iocl-tender-evaluation' ? 'Reduced tender evaluation from 4 weeks to same-day.' : p.why_relevant
+          })),
+          chat_context: { opener: "What role are you hiring for?" },
+          suggested_queries: ["Show me your resume", "What is your tech stack?"]
+        }
       };
     
     case 'engineer':
       return {
-        hero_intro: "Here's my work. Code-first, metrics-driven.",
-        chat_opener: "Ask me anything about my projects.",
+        personalization_id: 'mock-123',
         visitor_profile: { role: 'engineer', seniority: 'mid', skills: ['System Design', 'React'] },
-        featured_projects: baseProjects.map(p => ({
-          ...p,
-          why_relevant: p.id === 'iocl-tender-evaluation' ? 'Built tiered OCR pipeline with Qwen2-VL, LangChain, and Celery.' : p.why_relevant
-        })),
-        suggested_queries: ["Show me the architecture diagram", "How did you handle rate limits?"]
+        website_config: {
+          hero: { intro: "Here's my work. Code-first, metrics-driven." },
+          featured_projects: baseProjects.map(p => ({
+            ...p,
+            why_relevant: p.id === 'iocl-tender-evaluation' ? 'Built tiered OCR pipeline with Qwen2-VL, LangChain, and Celery.' : p.why_relevant
+          })),
+          chat_context: { opener: "Ask me anything about my projects." },
+          suggested_queries: ["Show me the architecture diagram", "How did you handle rate limits?"]
+        }
       };
       
     case 'manager':
       return {
-        hero_intro: `Here's what I've built${compStr} and how I think about impact.`,
-        chat_opener: "Let me walk you through my approach.",
+        personalization_id: 'mock-123',
         visitor_profile: { role: 'manager', seniority: 'senior', skills: ['Leadership', 'System Design'] },
-        featured_projects: baseProjects.map(p => ({
-          ...p,
-          why_relevant: p.id === 'iocl-tender-evaluation' ? 'Led architecture reducing P95 latency by 69% and GCP spend by 22%.' : p.why_relevant
-        })),
-        suggested_queries: ["How do you lead a team?", "Explain a system failure you recovered from"]
+        website_config: {
+          hero: { intro: `Here's what I've built${compStr} and how I think about impact.` },
+          featured_projects: baseProjects.map(p => ({
+            ...p,
+            why_relevant: p.id === 'iocl-tender-evaluation' ? 'Led architecture reducing P95 latency by 69% and GCP spend by 22%.' : p.why_relevant
+          })),
+          chat_context: { opener: "Let me walk you through my approach." },
+          suggested_queries: ["How do you lead a team?", "Explain a system failure you recovered from"]
+        }
       };
       
     default:
       return {
-        hero_intro: "Welcome to my portfolio.",
-        chat_opener: "Feel free to explore.",
+        personalization_id: 'mock-123',
         visitor_profile: { role: 'other', seniority: 'junior', skills: [] },
-        featured_projects: baseProjects,
-        suggested_queries: ["Tell me about yourself"]
+        website_config: {
+          hero: { intro: "Welcome to my portfolio." },
+          featured_projects: baseProjects,
+          chat_context: { opener: "Feel free to explore." },
+          suggested_queries: ["Tell me about yourself"]
+        }
       };
   }
 }
