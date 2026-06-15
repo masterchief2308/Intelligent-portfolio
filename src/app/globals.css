@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+  :root {
+    /* Premium High-Contrast Dark Mode (White Office in Dark Place) */
+    --background: #0A0A0C; /* Deep Charcoal/Black */
+    --foreground: #FAFAFA; /* Pure White for readability */
+    
+    --card: #0A0A0C;
+    --card-foreground: #FAFAFA;
+    
+    --popover: #0A0A0C;
+    --popover-foreground: #FAFAFA;
+    
+    --primary: #FAFAFA; /* White primary buttons */
+    --primary-foreground: #0A0A0C; /* Dark text on primary */
+    
+    --secondary: #1E1E24;
+    --secondary-foreground: #FAFAFA;
+    
+    --muted: #1E1E24;
+    --muted-foreground: #A1A1AA;
+    
+    --accent: #1E1E24;
+    --accent-foreground: #FAFAFA;
+    
+    --destructive: #EF4444;
+    --border: #27272A; /* Clean, visible 1px borders in dark mode */
+    --input: #27272A;
+    --ring: #F59E0B; /* Amber focus ring */
+    
+    --radius: 1rem; /* Softer, modern border radii for Bento boxes */
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans antialiased;
+  }
+  
+  /* Force hide Next.js dev indicator without restarting server */
+  nextjs-portal, #__next-prerender-indicator {
+    display: none !important;
+  }
+}
