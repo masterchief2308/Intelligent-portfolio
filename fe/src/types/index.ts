@@ -109,13 +109,19 @@ export interface PersonalizationRequest {
   company?: string;
 }
 
-export interface PersonalizationData {
-  email: string;
-  hero_intro: string;
+export interface WebsiteConfig {
+  hero: any;
   featured_projects: FeaturedProject[];
-  chat_opener: string;
-  visitor_profile: VisitorProfile;
+  skills_priority: string[];
+  journey_highlights: string[];
+  chat_context: any;
   suggested_queries: string[];
+}
+
+export interface PersonalizationData {
+  personalization_id: string;
+  visitor_profile: VisitorProfile;
+  website_config: WebsiteConfig;
 }
 
 export interface RagPrompt {
@@ -154,6 +160,7 @@ export interface AdminAuthResponse {
 export interface ChatRequest {
   message: string;
   session_id: string;
+  personalization_id: string;
   visitor_profile: VisitorProfile;
 }
 

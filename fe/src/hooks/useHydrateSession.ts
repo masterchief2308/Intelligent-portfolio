@@ -13,7 +13,7 @@ export function useHydrateSession() {
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (parsed.personalization?.featured_projects?.[0]?.id === 'rag-portfolio') {
+        if (parsed.personalization?.website_config?.featured_projects?.[0]?.id === 'rag-portfolio') {
           localStorage.removeItem('user_profile_complete');
           setPersonalization(null);
         } else {

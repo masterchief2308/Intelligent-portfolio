@@ -64,7 +64,7 @@ export default function Home() {
   };
 
   const filteredProjects = useMemo(() => {
-    const projects = personalization?.featured_projects || [];
+    const projects = personalization?.website_config?.featured_projects || [];
     if (activeFilters.length === 0) return projects;
     return projects.filter((fp: FeaturedProject) => {
       const fullProject = portfolio?.projects.find(p => p.id === fp.id);
@@ -150,7 +150,7 @@ export default function Home() {
           ) : (
             <motion.div initial={{ opacity: 0, filter: 'blur(10px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} transition={{ duration: 1 }} className="space-y-12">
               <h1 className="text-6xl sm:text-7xl md:text-[6rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase max-w-5xl">
-                {personalization.hero_intro}
+                {personalization.website_config?.hero?.intro}
               </h1>
               <div className="font-mono text-sm max-w-md uppercase tracking-widest text-muted-foreground border-l border-foreground/20 pl-6 py-2">
                 <p className="mb-4">Session Active. Vector: {personalization.visitor_profile?.role}.</p>
@@ -191,7 +191,7 @@ export default function Home() {
                   ))}
                   {activeFilters.length > 0 && (
                     <span className="font-mono text-[10px] text-amber-500/60 uppercase tracking-widest ml-2">
-                      [{filteredProjects.length} of {personalization.featured_projects.length} MATCHING]
+                      [{filteredProjects.length} of {personalization.website_config?.featured_projects?.length || 0} MATCHING]
                     </span>
                   )}
                 </div>

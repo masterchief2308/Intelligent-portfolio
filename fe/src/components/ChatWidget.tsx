@@ -39,6 +39,7 @@ export default function ChatWidget() {
       const response: ChatResponse = await api.chat({
         message: text,
         session_id: sessionId.current,
+        personalization_id: personalization.personalization_id,
         visitor_profile: personalization.visitor_profile,
       });
 
@@ -85,13 +86,13 @@ export default function ChatWidget() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 && personalization.suggested_queries && (
+            {messages.length === 0 && personalization.website_config?.suggested_queries && (
               <div className="space-y-3">
                 <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40">
-                  {personalization.chat_opener || 'Ask me anything'}
+                  {personalization.website_config?.chat_context?.opener || 'Ask me anything'}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {personalization.suggested_queries.map((q, i) => (
+                  {personalization.website_config.suggested_queries.map((q, i) => (
                     <button
                       key={i}
                       onClick={() => sendMessage(q)}
