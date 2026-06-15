@@ -64,13 +64,23 @@ export default function Home() {
   };
 
   const filteredProjects = useMemo(() => {
-    const projects = personalization?.website_config?.featured_projects || [];
+    let projects = personalization?.website_config?.featured_projects;
+    if (!projects) {
+      projects = portfolio?.projects?.map(p => ({
+        id: p.id,
+        title: p.title,
+        why_relevant: p.context || p.howItWorks?.substring(0, 100) + '...',
+        metric: p.metric || '99.9%'
+      })) || [];
+    }
+
     if (activeFilters.length === 0) return projects;
+    
     return projects.filter((fp: FeaturedProject) => {
-      const fullProject = portfolio?.projects.find(p => p.id === fp.id);
+      const fullProject = portfolio?.projects?.find(p => p.id === fp.id);
       if (!fullProject) return true;
       return activeFilters.some(f =>
-        fullProject.cloud === f || fullProject.techStack.includes(f)
+        fullProject.cloud === f || fullProject.techStack?.includes(f)
       );
     });
   }, [personalization, activeFilters, portfolio]);
@@ -168,8 +178,17 @@ export default function Home() {
           )}
         </div>
 
-        {personalization && (
-          <section className="border-t border-foreground/10 pt-16">
+        <section className="relative border-t border-foreground/10 pt-16">
+          {loading && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-start pt-32">
+              <div className="bg-background text-foreground px-6 py-4 font-mono text-sm uppercase tracking-widest border border-amber-500/50 flex items-center gap-4 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-amber-500">Retrieving system data...</span>
+              </div>
+            </div>
+          )}
+
+          <div className={`transition-all duration-500 ${loading ? 'opacity-20 blur-md pointer-events-none' : 'opacity-100'}`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-16 gap-4">
               <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Index: Production Systems</h2>
 
@@ -191,7 +210,7 @@ export default function Home() {
                   ))}
                   {activeFilters.length > 0 && (
                     <span className="font-mono text-[10px] text-amber-500/60 uppercase tracking-widest ml-2">
-                      [{filteredProjects.length} of {personalization.website_config?.featured_projects?.length || 0} MATCHING]
+                      [{filteredProjects.length} of {personalization?.website_config?.featured_projects?.length || portfolio?.projects?.length || 0} MATCHING]
                     </span>
                   )}
                 </div>
@@ -236,8 +255,8 @@ export default function Home() {
                 </a>
               ))}
             </div>
-          </section>
-        )}
+          </div>
+        </section>
       </main>
     </div>
   );
