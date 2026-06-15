@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useHydrateSession } from '@/hooks/useHydrateSession';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
-import { getProjectArchitecture } from '@/lib/architectures';
+import { useArchitecture } from '@/hooks/useArchitecture';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactFlow, Background, Controls, Handle, Position } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -43,11 +43,18 @@ export default function ProjectDetail() {
   const router = useRouter();
   const slug = params.slug as string;
   const { mounted, personalization } = useHydrateSession();
-  const { data: portfolio } = usePortfolioData();
+  const { data: portfolio, isLoading: portfolioLoading } = usePortfolioData();
+  const { data: archData, isLoading: archLoading } = useArchitecture(slug);
   const [viewMode, setViewMode] = useState<'business' | 'technical'>('business');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  if (!mounted) return null;
+  if (!mounted || portfolioLoading) {
+    return (
+      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
+        <p className="text-muted-foreground uppercase tracking-widest">CONNECTING TO SYSTEM ARCHIVES...</p>
+      </div>
+    );
+  }
 
   if (!personalization) {
     return (
@@ -67,7 +74,6 @@ export default function ProjectDetail() {
     );
   }
 
-  const archData = getProjectArchitecture(slug);
   const baseNodes = archData?.nodes || [];
   const baseEdges = archData?.edges || [];
 
@@ -160,21 +166,27 @@ export default function ProjectDetail() {
           </div>
 
           <div className="w-full h-full pt-16">
-            <ReactFlow
-              nodes={displayNodes}
-              edges={displayEdges}
-              nodeTypes={nodeTypes}
-              onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-              onPaneClick={() => setSelectedNodeId(null)}
-              fitView
-              fitViewOptions={{ padding: 0.2 }}
-              minZoom={0.1}
-              proOptions={{ hideAttribution: true }}
-              className="bg-transparent"
-            >
-              <Background color="rgba(255,255,255,0.02)" gap={40} size={1} />
-              <Controls className="fill-foreground border-foreground/20 bg-[#050505] opacity-50 hover:opacity-100" />
-            </ReactFlow>
+            {archLoading ? (
+              <div className="w-full h-full flex items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                COMPILING TOPOLOGY BLUEPRINTS...
+              </div>
+            ) : (
+              <ReactFlow
+                nodes={displayNodes}
+                edges={displayEdges}
+                nodeTypes={nodeTypes}
+                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+                onPaneClick={() => setSelectedNodeId(null)}
+                fitView
+                fitViewOptions={{ padding: 0.2 }}
+                minZoom={0.1}
+                proOptions={{ hideAttribution: true }}
+                className="bg-transparent"
+              >
+                <Background color="rgba(255,255,255,0.02)" gap={40} size={1} />
+                <Controls className="fill-foreground border-foreground/20 bg-[#050505] opacity-50 hover:opacity-100" />
+              </ReactFlow>
+            )}
           </div>
         </div>
 
