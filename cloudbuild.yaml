@@ -1,17 +1,27 @@
 steps:
-  # 1. Build the container image for the backend
+  # 0. Pull the latest image to use as a cache (ignore failure if it's the first run)
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: ['-c', 'docker pull asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:latest || exit 0']
+
+  # 1. Build the container image for the backend using the cache
   - name: 'gcr.io/cloud-builders/docker'
     args: 
       - 'build'
       - '-t'
       - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:$COMMIT_SHA'
+      - '-t'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:latest'
+      - '--cache-from'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:latest'
       - './be'
     
-  # 2. Push the container image to Artifact Registry
+  # 2. Push BOTH the specific commit image AND the latest tag to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: 
       - 'push'
-      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:$COMMIT_SHA'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend'
+      - '--all-tags'
     
   # 3. Deploy container image to Cloud Run (HARD CAPPED FOR FREE TIER)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -36,6 +46,7 @@ steps:
 
 images:
   - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:$COMMIT_SHA'
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
