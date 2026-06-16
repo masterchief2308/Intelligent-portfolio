@@ -114,7 +114,7 @@ export default function AdminDashboard() {
     if (!adminToken) return;
     try {
       const result = await api.clearCache(adminToken);
-      alert(`Cleared ${result.cleared_count || result.cleared || 0} cached personalizations.`);
+      alert(`Cleared ${result.cleared_count || 0} cached personalizations.`);
     } catch {
       alert('Failed to clear cache.');
     }
