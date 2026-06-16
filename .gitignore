@@ -97,3 +97,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Ignore private resumes and documents
+*.pdf
