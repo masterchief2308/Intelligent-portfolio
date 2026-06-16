@@ -32,3 +32,6 @@ steps:
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
