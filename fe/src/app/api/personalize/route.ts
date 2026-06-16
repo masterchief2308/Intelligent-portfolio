@@ -1,18 +1,44 @@
 import { NextResponse } from 'next/server';
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
 export async function POST(request: Request) {
   try {
-    const { email, role, company } = await request.json();
+    const body = await request.json();
+    const { email, role, company } = body;
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    // PDF PART 4 & 5: Mock the LangGraph scraping timeout/logic
-    // Simulate a 1.5s delay to represent scraping LinkedIn and Company domain
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Try real backend first
+    if (BACKEND_URL) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-    // PDF PART 6: Graceful Degradation / Fallback Content Per Role
+        const backendResponse = await fetch(`${BACKEND_URL}/api/personalize`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, role, company }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeout);
+
+        if (backendResponse.ok) {
+          const data = await backendResponse.json();
+          return NextResponse.json(data);
+        }
+
+        console.warn(`Backend returned ${backendResponse.status}, falling back to mock`);
+      } catch (backendError) {
+        console.warn("Backend unreachable, using fallback:", backendError);
+      }
+    }
+
+    // Fallback: mock data when backend is unavailable
+    await new Promise(resolve => setTimeout(resolve, 800));
     const fallbackData = getRoleBasedTemplate(role, company);
 
     return NextResponse.json({
@@ -22,12 +48,11 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error("Personalization failed:", error);
-    // Absolute fallback
     return NextResponse.json(getRoleBasedTemplate('other', ''), { status: 200 });
   }
 }
 
-// PDF PART 6: Fallback Content Template Definitions
+// Fallback templates when backend is unreachable
 function getRoleBasedTemplate(role: string, company?: string) {
   const compStr = company ? ` at ${company}` : '';
   
@@ -55,7 +80,7 @@ function getRoleBasedTemplate(role: string, company?: string) {
   switch (role) {
     case 'hiring':
       return {
-        personalization_id: 'mock-123',
+        personalization_id: 'fallback-hiring',
         visitor_profile: { role: 'hiring', seniority: 'senior', skills: ['Recruiting'] },
         website_config: {
           hero: { intro: `Hey recruiter${compStr}! Here's what I've shipped...` },
@@ -70,7 +95,7 @@ function getRoleBasedTemplate(role: string, company?: string) {
     
     case 'engineer':
       return {
-        personalization_id: 'mock-123',
+        personalization_id: 'fallback-engineer',
         visitor_profile: { role: 'engineer', seniority: 'mid', skills: ['System Design', 'React'] },
         website_config: {
           hero: { intro: "Here's my work. Code-first, metrics-driven." },
@@ -85,7 +110,7 @@ function getRoleBasedTemplate(role: string, company?: string) {
       
     case 'manager':
       return {
-        personalization_id: 'mock-123',
+        personalization_id: 'fallback-manager',
         visitor_profile: { role: 'manager', seniority: 'senior', skills: ['Leadership', 'System Design'] },
         website_config: {
           hero: { intro: `Here's what I've built${compStr} and how I think about impact.` },
@@ -100,7 +125,7 @@ function getRoleBasedTemplate(role: string, company?: string) {
       
     default:
       return {
-        personalization_id: 'mock-123',
+        personalization_id: 'fallback-default',
         visitor_profile: { role: 'other', seniority: 'junior', skills: [] },
         website_config: {
           hero: { intro: "Welcome to my portfolio." },

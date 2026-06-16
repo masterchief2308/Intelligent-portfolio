@@ -1,0 +1,516 @@
+{
+  "iocl-tender-evaluation": {
+    "slug": "iocl-tender-evaluation",
+    "nodes": [
+      {
+        "id": "plugin",
+        "type": "custom",
+        "x": -300,
+        "y": -50,
+        "label": "GeM Portal Plugin",
+        "isExternal": true
+      },
+      {
+        "id": "user",
+        "type": "custom",
+        "x": -300,
+        "y": 200,
+        "label": "IOCL User",
+        "isExternal": true
+      },
+      {
+        "id": "gcp",
+        "type": "group",
+        "x": 0,
+        "y": -150,
+        "width": 1200,
+        "height": 1000,
+        "label": "Google Cloud Platform",
+        "badge": "GCP"
+      },
+      {
+        "id": "frontend",
+        "type": "custom",
+        "x": 50,
+        "y": 350,
+        "label": "React Frontend",
+        "badge": "RUN",
+        "parentId": "gcp"
+      },
+      {
+        "id": "cloudrun",
+        "type": "custom",
+        "x": 780,
+        "y": 100,
+        "label": "Cloud Run (Download Job)",
+        "badge": "RUN",
+        "parentId": "gcp"
+      },
+      {
+        "id": "secrets",
+        "type": "custom",
+        "x": 980,
+        "y": 250,
+        "label": "Secret Manager",
+        "badge": "SEC",
+        "parentId": "gcp"
+      },
+      {
+        "id": "bucket",
+        "type": "custom",
+        "x": 980,
+        "y": 400,
+        "label": "Cloud Storage (Zip)",
+        "badge": "GCS",
+        "parentId": "gcp"
+      },
+      {
+        "id": "firestore",
+        "type": "custom",
+        "x": 980,
+        "y": 700,
+        "label": "Firestore (Tender DB)",
+        "badge": "DB",
+        "parentId": "gcp"
+      },
+      {
+        "id": "gke",
+        "type": "group",
+        "x": 300,
+        "y": 200,
+        "width": 450,
+        "height": 750,
+        "label": "Google Kubernetes Engine",
+        "badge": "GKE",
+        "parentId": "gcp"
+      },
+      {
+        "id": "backend",
+        "type": "custom",
+        "x": 50,
+        "y": 50,
+        "label": "FastAPI Backend",
+        "badge": "API",
+        "parentId": "gke"
+      },
+      {
+        "id": "ocr",
+        "type": "custom",
+        "x": 50,
+        "y": 200,
+        "label": "OCR Celery Pod [Qwen2-VL]",
+        "badge": "POD",
+        "parentId": "gke"
+      },
+      {
+        "id": "segment",
+        "type": "custom",
+        "x": 50,
+        "y": 350,
+        "label": "Segment Celery Pod [Llama 4 Scout]",
+        "badge": "POD",
+        "parentId": "gke"
+      },
+      {
+        "id": "extract",
+        "type": "custom",
+        "x": 50,
+        "y": 500,
+        "label": "Extract Celery Pod [Qwen 32B]",
+        "badge": "POD",
+        "parentId": "gke"
+      },
+      {
+        "id": "l1",
+        "type": "custom",
+        "x": 50,
+        "y": 650,
+        "label": "L1: Low Token",
+        "badge": "LLM",
+        "parentId": "gke"
+      },
+      {
+        "id": "l2",
+        "type": "custom",
+        "x": 250,
+        "y": 650,
+        "label": "L2: Detailed (Low Conf)",
+        "badge": "LLM",
+        "parentId": "gke"
+      }
+    ],
+    "edges": [
+      {
+        "source": "user",
+        "target": "plugin"
+      },
+      {
+        "source": "user",
+        "target": "frontend"
+      },
+      {
+        "source": "plugin",
+        "target": "backend",
+        "animated": false,
+        "dashed": true,
+        "label": "Version Check"
+      },
+      {
+        "source": "plugin",
+        "target": "cloudrun",
+        "animated": true,
+        "label": "Trigger Download"
+      },
+      {
+        "source": "frontend",
+        "target": "backend"
+      },
+      {
+        "source": "cloudrun",
+        "target": "backend",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "backend",
+        "target": "ocr",
+        "animated": false,
+        "dashed": true,
+        "label": "Pub/Sub",
+        "sourceHandle": "s-bottom",
+        "targetHandle": "t-top"
+      },
+      {
+        "source": "ocr",
+        "target": "segment",
+        "animated": false,
+        "dashed": true,
+        "label": "Pub/Sub",
+        "sourceHandle": "s-bottom",
+        "targetHandle": "t-top"
+      },
+      {
+        "source": "segment",
+        "target": "extract",
+        "animated": false,
+        "dashed": true,
+        "label": "Pub/Sub",
+        "sourceHandle": "s-bottom",
+        "targetHandle": "t-top"
+      },
+      {
+        "source": "extract",
+        "target": "l1",
+        "animated": true,
+        "sourceHandle": "s-bottom",
+        "targetHandle": "t-top"
+      },
+      {
+        "source": "extract",
+        "target": "l2",
+        "animated": true,
+        "dashed": true
+      },
+      {
+        "source": "l1",
+        "target": "firestore",
+        "animated": false,
+        "dashed": true,
+        "targetHandle": "t-top"
+      },
+      {
+        "source": "l2",
+        "target": "firestore",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "backend",
+        "target": "secrets",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "ocr",
+        "target": "secrets",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "extract",
+        "target": "secrets",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "cloudrun",
+        "target": "bucket",
+        "animated": false,
+        "sourceHandle": "s-bottom",
+        "targetHandle": "t-top"
+      },
+      {
+        "source": "cloudrun",
+        "target": "firestore",
+        "animated": false,
+        "sourceHandle": "s-bottom",
+        "targetHandle": "t-top"
+      },
+      {
+        "source": "backend",
+        "target": "firestore",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "backend",
+        "target": "bucket",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "ocr",
+        "target": "bucket",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "segment",
+        "target": "bucket",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "extract",
+        "target": "firestore",
+        "animated": false,
+        "dashed": true
+      }
+    ]
+  },
+  "km-tech-int-forensics": {
+    "slug": "km-tech-int-forensics",
+    "nodes": [
+      {
+        "id": "frontend",
+        "type": "custom",
+        "x": -150,
+        "y": 150,
+        "label": "React TS Frontend",
+        "isExternal": true
+      },
+      {
+        "id": "gcp",
+        "type": "group",
+        "x": 200,
+        "y": 0,
+        "width": 700,
+        "height": 500,
+        "label": "Google Cloud Platform",
+        "badge": "GCP"
+      },
+      {
+        "id": "api",
+        "type": "custom",
+        "x": 50,
+        "y": 150,
+        "label": "Backend API",
+        "badge": "API",
+        "parentId": "gcp"
+      },
+      {
+        "id": "redis",
+        "type": "custom",
+        "x": 350,
+        "y": 50,
+        "label": "Redis Cache",
+        "badge": "CACHE",
+        "parentId": "gcp"
+      },
+      {
+        "id": "bucket",
+        "type": "custom",
+        "x": 350,
+        "y": 150,
+        "label": "GCP Bucket",
+        "badge": "GCS",
+        "parentId": "gcp"
+      },
+      {
+        "id": "database",
+        "type": "custom",
+        "x": 350,
+        "y": 300,
+        "label": "Database (Neo4j/Postgres)",
+        "badge": "DB",
+        "parentId": "gcp"
+      },
+      {
+        "id": "gemini",
+        "type": "custom",
+        "x": 350,
+        "y": 400,
+        "label": "Gemini 2.5 Flash API",
+        "badge": "AI",
+        "parentId": "gcp"
+      }
+    ],
+    "edges": [
+      {
+        "source": "frontend",
+        "target": "api"
+      },
+      {
+        "source": "api",
+        "target": "redis"
+      },
+      {
+        "source": "api",
+        "target": "bucket"
+      },
+      {
+        "source": "api",
+        "target": "database"
+      },
+      {
+        "source": "api",
+        "target": "gemini",
+        "animated": false,
+        "dashed": true,
+        "label": "API Key"
+      }
+    ]
+  },
+  "azolla-casper": {
+    "slug": "azolla-casper",
+    "nodes": [
+      {
+        "id": "sources",
+        "type": "custom",
+        "x": -300,
+        "y": 150,
+        "label": "Raw Data (Fuel, AIS, Registry)",
+        "isExternal": true
+      },
+      {
+        "id": "aws",
+        "type": "group",
+        "x": 0,
+        "y": 0,
+        "width": 1000,
+        "height": 450,
+        "label": "Amazon Web Services",
+        "badge": "AWS"
+      },
+      {
+        "id": "layer1",
+        "type": "custom",
+        "x": 50,
+        "y": 150,
+        "label": "L1: Data Cleaning",
+        "badge": "DATA",
+        "parentId": "aws"
+      },
+      {
+        "id": "layer2",
+        "type": "custom",
+        "x": 300,
+        "y": 150,
+        "label": "L2: Feature Engineering (Scikit)",
+        "badge": "ML",
+        "parentId": "aws"
+      },
+      {
+        "id": "layer3",
+        "type": "custom",
+        "x": 550,
+        "y": 150,
+        "label": "L3: ML Regressor (RandomForest)",
+        "badge": "ML",
+        "parentId": "aws"
+      },
+      {
+        "id": "layer4a",
+        "type": "custom",
+        "x": 850,
+        "y": 0,
+        "label": "L4a: Penalty Calculator (€100/tonne)",
+        "badge": "CALC",
+        "parentId": "aws"
+      },
+      {
+        "id": "layer4b",
+        "type": "custom",
+        "x": 850,
+        "y": 300,
+        "label": "L4b: Pool Dive (Vessel Matching)",
+        "badge": "MATCH",
+        "parentId": "aws"
+      },
+      {
+        "id": "celery",
+        "type": "custom",
+        "x": 550,
+        "y": -100,
+        "label": "Celery Background Alerts",
+        "badge": "WORKER",
+        "parentId": "aws"
+      },
+      {
+        "id": "ses",
+        "type": "custom",
+        "x": 850,
+        "y": -100,
+        "label": "AWS SES",
+        "badge": "EMAIL",
+        "parentId": "aws"
+      },
+      {
+        "id": "expert",
+        "type": "custom",
+        "x": 1200,
+        "y": 150,
+        "label": "L5: Domain Expert Validation (SHAP)",
+        "isExternal": true
+      }
+    ],
+    "edges": [
+      {
+        "source": "sources",
+        "target": "layer1"
+      },
+      {
+        "source": "layer1",
+        "target": "layer2"
+      },
+      {
+        "source": "layer2",
+        "target": "layer3"
+      },
+      {
+        "source": "layer3",
+        "target": "layer4a"
+      },
+      {
+        "source": "layer3",
+        "target": "layer4b"
+      },
+      {
+        "source": "layer4a",
+        "target": "celery",
+        "animated": false,
+        "dashed": true
+      },
+      {
+        "source": "celery",
+        "target": "ses"
+      },
+      {
+        "source": "layer3",
+        "target": "expert",
+        "animated": false,
+        "dashed": true
+      }
+    ]
+  }
+}

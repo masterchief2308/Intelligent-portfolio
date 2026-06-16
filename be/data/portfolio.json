@@ -1,0 +1,116 @@
+{
+  "basics": {
+    "name": "Aditya Katkar",
+    "label": "Full Stack GenAI Engineer | LLM Systems | Cloud-Native AI Infrastructure",
+    "email": "katkaraditya15@gmail.com",
+    "phone": "+91-9082890889",
+    "location": "Mumbai, India",
+    "linkedin": "linkedin.com/in/aditya-katkar",
+    "github": "github.com/masterchief2308",
+    "summary": "Full Stack GenAI Engineer with 2 years of experience building production LLM pipelines, RAG systems, and AI-powered document intelligence platforms for Fortune 500 clients and government bodies. Delivered end-to-end systems using LangChain, FAISS, and vLLM that compressed tender evaluation cycles from 4 weeks of manual work to same-day turnaround, sustained 95% pipeline reliability across 10,000 daily jobs, and cut cloud spend by 22%."
+  },
+  "skills": {
+    "generative_ai": ["LLM Orchestration", "Prompt Engineering", "RAG", "LangChain", "Llama 4 Scout", "Gemini 2.5 Flash", "BAAI Embeddings", "vLLM", "Ollama", "CUDA", "NVIDIA H200"],
+    "ai_ml": ["FAISS", "BM25 Hybrid Retrieval", "EnsembleRetriever", "scikit-learn", "Neo4j Graph Embeddings", "pgvector", "QdrantDB", "HNSW Indexing"],
+    "backend": ["FastAPI", "Flask", "Django", "Node.js", "REST API", "GraphQL", "Microservices", "Celery", "RabbitMQ", "Kafka"],
+    "cloud_devops": ["GCP (GKE, Pub/Sub, Firestore, Cloud Storage, Compute Engine)", "AWS (Amplify, SES, S3, EC2)", "Docker", "Kubernetes", "Terraform", "CI/CD"],
+    "databases": ["PostgreSQL", "Neo4j", "QdrantDB", "Redis", "MongoDB", "Firestore", "MSSQL", "MySQL"],
+    "languages": ["Python", "JavaScript", "TypeScript", "Rust", "SQL"],
+    "frontend": ["React", "Next.js", "TypeScript", "Redux", "D3.js", "Recharts", "Tailwind CSS"]
+  },
+  "experience": [
+    {
+      "company": "Valiance Solutions",
+      "location": "Noida",
+      "role": "Software Engineer",
+      "startDate": "Jul 2024",
+      "endDate": "Present",
+      "highlights": [
+        "Architected a 6-microservice platform on GKE to fully automate IOCL's vendor tender evaluation. Handled 3 concurrent tenders with 100+ vendor submissions each.",
+        "Built a tiered document ingestion pipeline using Qwen2-VL processing digital and scanned PDFs, preserving tables.",
+        "Deployed Llama 4 Scout on vLLM to detect document boundaries, parallelized across 4 workers.",
+        "Deployed Qwen 32B to auto-generate Techno-Commercial Comparison reports in an air-gapped GCP VPC.",
+        "Built a multi-stage document classification and extraction pipeline using a hybrid BM25 and FAISS retriever.",
+        "Implemented a fault-tolerant Pub/Sub and Celery pipeline with dead-letter queues sustaining 95% task success.",
+        "Optimized PostgreSQL with composite indexing and Redis cache-aside, reducing P95 latency by 69% and GCP spend by 22%.",
+        "Streamlined CI/CD on GKE via Bitbucket Pipelines, cutting release cycle from 45 to 8 minutes."
+      ]
+    },
+    {
+      "company": "Markytics.ai",
+      "location": "Pune",
+      "role": "Python Developer Intern",
+      "startDate": "Jan 2024",
+      "endDate": "Jun 2024",
+      "highlights": [
+        "Built Django REST APIs with RBAC and Celery task queues for 3 production clients, maintaining 85% unit test coverage via Pytest.",
+        "Automated a document extraction pipeline processing 500+ documents per day, saving the operations team 12 work-hours every week.",
+        "Shipped real-time shipment tracking using Celery and AWS SES, improving operational visibility by 60% and cutting manual interventions by 40%."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "MIT Pune",
+      "degree": "B.Tech Computer Science",
+      "startDate": "Oct 2020",
+      "endDate": "May 2024",
+      "cgpa": "9.2 / 10 | Top 10% of graduating class"
+    }
+  ],
+  "certifications": [
+    { "name": "Google Professional Cloud Developer", "date": "Dec 2024" },
+    { "name": "Google Professional Cloud Architect", "date": "Jan 2025" }
+  ],
+  "projects": [
+    {
+      "id": "iocl-tender-evaluation",
+      "title": "IOCL Tender Evaluation Platform",
+      "client": "Indian Oil Corporation Ltd.",
+      "date": "Jan 2025 \u2013 Present",
+      "cloud": "GCP",
+      "metric": "95% RELIABILITY",
+      "context": "Indian Oil Corporation Ltd. (IOCL) requires massive procurement operations where vendor tender submissions run into hundreds of complex PDFs. Previously, procurement teams spent 4 weeks manually reading, extracting, and verifying compliance data across these submissions.",
+      "howItWorks": "The platform is a 6-microservice architecture on GKE. When a PDF is uploaded to Cloud Storage, it triggers a Pub/Sub event for microservice queuing. A tiered OCR and visual segmentation pipeline relies on Celery for internal queuing of page-level tasks. An LLM classifier (Llama 4 Scout) categorizes the documents, while a hybrid BM25 and FAISS RAG pipeline handles extraction via a tiered L1/L2 prompt confidence system. Finally, Qwen 32B auto-generates the Techno-Commercial Comparison reports.",
+      "roi": [
+        "Reduced manual evaluation cycle from 4 weeks to a same-day automated turnaround.",
+        "Handles 3 concurrent tenders with 100+ vendor submissions each.",
+        "Achieved 95% task success reliability across 10,000+ daily AI pipeline jobs.",
+        "Reduced P95 database latency by 69% and monthly GCP spend by 22%."
+      ],
+      "techStack": ["FastAPI", "React", "GCP (Pub/Sub, GKE, Firestore)", "Qwen2-VL", "Llama 4 Scout", "vLLM", "LangChain", "FAISS", "BM25", "Redis"]
+    },
+    {
+      "id": "km-tech-int-forensics",
+      "title": "KM-Tech-Int Digital Forensics",
+      "client": "Malaysian Government",
+      "date": "Jul 2024 \u2013 Present",
+      "cloud": "GCP",
+      "metric": "10X FASTER",
+      "context": "A digital forensics investigation platform for the Malaysian Government, designed to analyze massive datasets like VoIP logs, Call Detail Records (CDRs), and court PDFs to identify criminal networks.",
+      "howItWorks": "The system ingests raw logs and uses Gemini 2.5 Flash to extract structured forensic identifiers (IMSI, IMEI, MAC, IP) in a single-pass without chunking. This extracted relational context is ingested into a Neo4j graph database. A React frontend renders a D3.js force-directed graph allowing investigators to traverse multi-hop links visually. Semantic search via pgvector surfaces similar past investigations.",
+      "roi": [
+        "Reduced case analysis time by 10x over manual SQL workflows through multi-hop Neo4j Cypher traversals.",
+        "Surfaces similar past case precedents in under 30 seconds via pgvector document embeddings.",
+        "Provides court-admissible SVG exports directly from the interactive graph."
+      ],
+      "techStack": ["React", "D3.js", "Django", "Neo4j", "Gemini 2.5 Flash", "pgvector", "PostgreSQL", "GCP"]
+    },
+    {
+      "id": "azolla-casper",
+      "title": "Azolla CASPER: Maritime Emissions",
+      "client": "Azolla, Singapore",
+      "date": "Jul 2024 \u2013 Feb 2025",
+      "cloud": "AWS",
+      "metric": "<50K EUR ERROR",
+      "context": "A Maritime Emissions Compliance SaaS designed to track and forecast EU ETS carbon penalty exposures and FuelEU maritime emissions for massive fleet operators.",
+      "howItWorks": "A scikit-learn ML engine processes vessel data to forecast 30-day carbon penalties. The 'Pool Dive' feature acts as a compliance credit marketplace, using algorithmic matching on emissions balance, GHG intensity, and trade routes. Background Celery workers generate nightly automated alerts via AWS SES if carbon or fuel thresholds are breached.",
+      "roi": [
+        "Produced 30-day penalty forecasts with an average error of under 50,000 EUR, validated by maritime domain experts.",
+        "Created an internal green credit currency, allowing fleets to offset carbon penalties efficiently.",
+        "Fully automated nightly reporting and alerting for fleet managers and compliance officers."
+      ],
+      "techStack": ["React", "Django", "AWS (Amplify, SES)", "MSSQL", "Celery", "Redis", "scikit-learn"]
+    }
+  ]
+}

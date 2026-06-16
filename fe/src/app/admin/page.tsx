@@ -1,51 +1,40 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePortfolioStore } from '@/store/usePortfolioStore';
+import { api } from '@/lib/api';
 import type { RagPrompt, AdminConfig, AnalyticsDashboard } from '@/types';
-
-const MOCK_PROMPTS: RagPrompt[] = [
-  { id: 'recruiter_personalization', name: 'Recruiter Personalization', template: 'You are personalizing a portfolio for a recruiter at {company}. Based on their LinkedIn profile: {linkedin_data}. Highlight projects relevant to their open roles: {hiring_for}.', model: 'gemini-2.5-flash', temperature: 0.7, max_tokens: 1024, description: 'Generates personalized landing page content for recruiters', updated_at: new Date().toISOString() },
-  { id: 'engineer_personalization', name: 'Engineer Personalization', template: 'You are personalizing a portfolio for a fellow engineer. Focus on technical depth, architecture decisions, and code-level details.', model: 'gemini-2.5-flash', temperature: 0.5, max_tokens: 1024, description: 'Generates tech-focused content for visiting engineers', updated_at: new Date().toISOString() },
-  { id: 'manager_personalization', name: 'Manager Personalization', template: 'You are personalizing for an engineering manager. Highlight ROI, cost savings, team leadership, and business impact metrics.', model: 'gemini-2.5-flash', temperature: 0.6, max_tokens: 1024, description: 'Generates impact-focused content for managers', updated_at: new Date().toISOString() },
-  { id: 'chat_response', name: 'Chat Response', template: 'You are Aditya\'s portfolio assistant. Answer the visitor\'s question using the following retrieved context: {rag_context}. Be concise, technical, and direct.', model: 'gemini-2.5-flash', temperature: 0.3, max_tokens: 512, description: 'Powers the chat-with-portfolio RAG interface', updated_at: new Date().toISOString() },
-  { id: 'project_summary', name: 'Project Summary Generator', template: 'Generate a concise system context and architectural implementation summary for project: {project_title}. Include cloud services, ML models, and data flow.', model: 'gemini-2.5-flash', temperature: 0.4, max_tokens: 768, description: 'Auto-generates project context fields', updated_at: new Date().toISOString() },
-];
-
-const MOCK_ANALYTICS: AnalyticsDashboard = {
-  total_visitors: 142,
-  visitors_this_week: 23,
-  by_role: { hiring: 67, engineer: 45, manager: 18, other: 12 },
-  recent_visitors: [
-    { email: 'recruiter@google.com', role: 'hiring', company: 'Google', timestamp: '2026-06-15T18:10:00Z' },
-    { email: 'dev@meta.com', role: 'engineer', company: 'Meta', timestamp: '2026-06-15T16:30:00Z' },
-    { email: 'mgr@amazon.com', role: 'manager', company: 'Amazon', timestamp: '2026-06-15T14:00:00Z' },
-  ],
-  top_projects_viewed: [
-    { slug: 'iocl-tender-evaluation', views: 89 },
-    { slug: 'km-tech-int-forensics', views: 34 },
-    { slug: 'azolla-casper', views: 19 },
-  ],
-};
 
 export default function AdminDashboard() {
   const { personalization, setPersonalization } = usePortfolioStore();
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Auth
+  const { adminToken, setAdminToken } = usePortfolioStore();
   const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
 
+  // Config
   const [timeoutMs, setTimeoutMs] = useState(5000);
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [langchainKey, setLangchainKey] = useState('');
-  const [geminiKey, setGeminiKey] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [configLoading, setConfigLoading] = useState(false);
 
-  const [prompts, setPrompts] = useState<RagPrompt[]>(MOCK_PROMPTS);
+  // Token Config
+  const [globalTokenLimit, setGlobalTokenLimit] = useState(50000);
+  const [maxLinksToScrape, setMaxLinksToScrape] = useState(2);
+  const [highBudget, setHighBudget] = useState(15000);
+  const [mediumBudget, setMediumBudget] = useState(8000);
+  const [lowBudget, setLowBudget] = useState(3000);
+
+  // Prompts
+  const [prompts, setPrompts] = useState<RagPrompt[]>([]);
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
-  const [analytics] = useState<AnalyticsDashboard>(MOCK_ANALYTICS);
+
+  // Analytics
+  const [analytics, setAnalytics] = useState<AnalyticsDashboard | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -56,28 +45,79 @@ export default function AdminDashboard() {
         setPersonalization(parsed.personalization);
       } catch { /* ignore */ }
     }
-    if (sessionStorage.getItem('admin_auth')) {
-      setIsAuthenticated(true);
-    }
   }, [setPersonalization]);
+
+  // Load real data when authenticated
+  const loadAdminData = useCallback(async (token: string) => {
+    setConfigLoading(true);
+    setAnalyticsLoading(true);
+
+    try {
+      const config = await api.getAdminConfig(token);
+      setTimeoutMs(config.scraping_timeout_ms);
+      setPrompts(config.rag_prompts || []);
+    } catch (e) {
+      console.warn('Failed to load admin config:', e);
+    } finally {
+      setConfigLoading(false);
+    }
+
+    try {
+      const stats = await api.getAnalytics(token);
+      setAnalytics(stats);
+    } catch (e) {
+      console.warn('Failed to load analytics:', e);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (adminToken) {
+      loadAdminData(adminToken);
+    }
+  }, [adminToken, loadAdminData]);
 
   if (!mounted) return null;
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === 'admin2026') {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('admin_auth', 'true');
-    } else {
-      alert('ACCESS DENIED: Incorrect Passphrase');
+    setAuthError('');
+
+    try {
+      const resp = await api.adminAuth(passwordInput);
+      setAdminToken(resp.token);
+    } catch {
+      setAuthError('ACCESS DENIED: Invalid passphrase or backend unreachable.');
       setPasswordInput('');
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
+    if (!adminToken) return;
+
+    try {
+      await api.updateAdminConfig(adminToken, {
+        scraping_timeout_ms: timeoutMs,
+        rag_prompts: prompts,
+      });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
+    } catch (e) {
+      console.error('Failed to save config:', e);
+      alert('Failed to save. Check backend connection.');
+    }
+  };
+
+  const handleClearCache = async () => {
+    if (!adminToken) return;
+    try {
+      const result = await api.clearCache(adminToken);
+      alert(`Cleared ${result.cleared_count || result.cleared || 0} cached personalizations.`);
+    } catch {
+      alert('Failed to clear cache.');
+    }
   };
 
   const clearSession = () => {
@@ -86,13 +126,17 @@ export default function AdminDashboard() {
     router.push('/');
   };
 
+  const handleLogout = () => {
+    setAdminToken(null);
+  };
+
   const updatePrompt = (id: string, field: keyof RagPrompt, value: any) => {
     setPrompts(prev => prev.map(p =>
       p.id === id ? { ...p, [field]: value, updated_at: new Date().toISOString() } : p
     ));
   };
 
-  if (!isAuthenticated) {
+  if (!adminToken) {
     return (
       <div className="min-h-screen relative z-10 px-6 sm:px-12 md:px-24 pt-32 pb-24 flex flex-col items-center justify-center">
         <button
@@ -107,8 +151,14 @@ export default function AdminDashboard() {
             [ RESTRICTED AREA ]
           </h1>
           <p className="font-mono text-xs text-muted-foreground mb-8">
-            Admin console requires authorization passphrase.
+            Admin console requires authorization via backend JWT.
           </p>
+
+          {authError && (
+            <div className="text-red-500 font-mono text-xs mb-4 p-3 border border-red-900/50 bg-red-900/10">
+              {authError}
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 mb-8">
             <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">PASSPHRASE_</label>
@@ -135,12 +185,20 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen relative z-10 px-6 sm:px-12 md:px-24 pt-32 pb-24 flex flex-col">
       <main className="flex-1 w-full max-w-[900px] mx-auto">
-        <button
-          onClick={() => router.push('/')}
-          className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors mb-8 block"
-        >
-          ← Return to Index
-        </button>
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => router.push('/')}
+            className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Return to Index
+          </button>
+          <button
+            onClick={handleLogout}
+            className="font-mono text-[10px] uppercase tracking-widest text-red-500 border border-red-900/30 px-3 py-1 hover:bg-red-900/20 transition-colors"
+          >
+            [ LOGOUT ]
+          </button>
+        </div>
 
         <div className="mb-16">
           <h1 className="text-5xl sm:text-6xl md:text-[5rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase max-w-4xl mb-4">
@@ -153,6 +211,7 @@ export default function AdminDashboard() {
 
         <form onSubmit={handleSave} className="space-y-12">
 
+          {/* Section 1: Session Management */}
           <div className="border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-8">
             <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-foreground/10 pb-2 mb-6">
               01 // Active Session Management
@@ -164,16 +223,26 @@ export default function AdminDashboard() {
                   {personalization ? `Active: ${personalization.visitor_profile?.role}` : 'No active session parameters found.'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={clearSession}
-                className="bg-red-900/20 text-red-500 border border-red-900/50 hover:bg-red-900/40 px-6 py-3 font-mono text-xs uppercase tracking-widest transition-colors whitespace-nowrap"
-              >
-                [ TERMINATE CACHE ]
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={clearSession}
+                  className="bg-red-900/20 text-red-500 border border-red-900/50 hover:bg-red-900/40 px-4 py-3 font-mono text-xs uppercase tracking-widest transition-colors whitespace-nowrap"
+                >
+                  [ RESET SESSION ]
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearCache}
+                  className="bg-amber-900/20 text-amber-500 border border-amber-900/50 hover:bg-amber-900/40 px-4 py-3 font-mono text-xs uppercase tracking-widest transition-colors whitespace-nowrap"
+                >
+                  [ CLEAR ALL CACHE ]
+                </button>
+              </div>
             </div>
           </div>
 
+          {/* Section 2: Scraping Thresholds */}
           <div className="border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-8">
             <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-foreground/10 pb-2 mb-6">
               02 // Scraping Engine Thresholds
@@ -181,159 +250,207 @@ export default function AdminDashboard() {
             <div className="space-y-6 p-6 bg-foreground/5 border border-foreground/10">
               <div className="flex flex-col gap-4">
                 <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">
-                  LangGraph Fallback Timeout (ms) : [{timeoutMs}]
+                  Playwright Fallback Timeout (ms) : [{timeoutMs}]
                 </label>
                 <input
                   type="range"
                   min="1000"
-                  max="10000"
+                  max="15000"
                   step="500"
                   value={timeoutMs}
                   onChange={(e) => setTimeoutMs(Number(e.target.value))}
                   className="w-full accent-amber-500"
                 />
-                <p className="font-mono text-xs text-muted-foreground leading-relaxed">
-                  If the Playwright agent fails to scrape within {timeoutMs}ms, Graceful Degradation serves static fallback content.
-                </p>
               </div>
             </div>
           </div>
 
+          {/* Section 3: Token Budget Configuration */}
           <div className="border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-8">
             <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-foreground/10 pb-2 mb-6">
-              03 // Environment Variables
+              03 // Token Budget Configuration
             </h2>
             <div className="space-y-6 p-6 bg-foreground/5 border border-foreground/10">
-              {[
-                { label: 'OPENAI_API_KEY_', value: openaiKey, set: setOpenaiKey, placeholder: 'sk-...' },
-                { label: 'LANGCHAIN_API_KEY_', value: langchainKey, set: setLangchainKey, placeholder: 'ls__...' },
-                { label: 'GEMINI_API_KEY_', value: geminiKey, set: setGeminiKey, placeholder: 'AIza...' },
-              ].map(field => (
-                <div key={field.label} className="flex flex-col gap-2">
-                  <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">{field.label}</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">GLOBAL_LLM_CALL_LIMIT_</label>
                   <input
-                    type="password"
-                    value={field.value}
-                    onChange={(e) => field.set(e.target.value)}
-                    placeholder={field.placeholder}
-                    className="bg-transparent border-b border-foreground/20 py-2 focus:outline-none focus:border-amber-500 font-mono text-foreground placeholder:text-foreground/20 transition-colors"
+                    type="number"
+                    value={globalTokenLimit}
+                    onChange={(e) => setGlobalTokenLimit(Number(e.target.value))}
+                    className="bg-transparent border border-foreground/20 p-2 font-mono text-xs text-foreground focus:outline-none focus:border-amber-500"
                   />
                 </div>
-              ))}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">MAX_LINKS_TO_SCRAPE_</label>
+                  <input
+                    type="number"
+                    value={maxLinksToScrape}
+                    onChange={(e) => setMaxLinksToScrape(Number(e.target.value))}
+                    min={1}
+                    max={5}
+                    className="bg-transparent border border-foreground/20 p-2 font-mono text-xs text-foreground focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'HIGH_BUDGET_', value: highBudget, set: setHighBudget },
+                  { label: 'MEDIUM_BUDGET_', value: mediumBudget, set: setMediumBudget },
+                  { label: 'LOW_BUDGET_', value: lowBudget, set: setLowBudget },
+                ].map(field => (
+                  <div key={field.label} className="flex flex-col gap-2">
+                    <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">{field.label}</label>
+                    <input
+                      type="number"
+                      value={field.value}
+                      onChange={(e) => field.set(Number(e.target.value))}
+                      className="bg-transparent border border-foreground/20 p-2 font-mono text-xs text-foreground focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="font-mono text-[10px] text-foreground/30">
+                Token budgets control how much scraped content is sent per LLM call. High = engineering/tech data. Low = basic company info.
+              </p>
             </div>
           </div>
 
+          {/* Section 4: RAG Prompt Templates */}
           <div className="border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-8">
             <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-foreground/10 pb-2 mb-6">
               04 // RAG Prompt Templates
             </h2>
-            <div className="space-y-4">
-              {prompts.map(prompt => (
-                <div key={prompt.id} className="border border-foreground/10 bg-foreground/5 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-foreground font-bold uppercase tracking-tighter">{prompt.name}</h3>
-                      <p className="font-mono text-[10px] text-muted-foreground mt-1">{prompt.description}</p>
+            {configLoading ? (
+              <div className="flex items-center gap-3 p-6 text-muted-foreground font-mono text-xs">
+                <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                Loading from backend...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {prompts.map(prompt => (
+                  <div key={prompt.id} className="border border-foreground/10 bg-foreground/5 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-foreground font-bold uppercase tracking-tighter">{prompt.name}</h3>
+                        <p className="font-mono text-[10px] text-muted-foreground mt-1">{prompt.description}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingPromptId(editingPromptId === prompt.id ? null : prompt.id)}
+                        className="font-mono text-[10px] uppercase tracking-widest text-amber-500 border border-amber-500/30 px-3 py-1 hover:bg-amber-500/10 transition-colors"
+                      >
+                        {editingPromptId === prompt.id ? '[ CLOSE ]' : '[ EDIT ]'}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setEditingPromptId(editingPromptId === prompt.id ? null : prompt.id)}
-                      className="font-mono text-[10px] uppercase tracking-widest text-amber-500 border border-amber-500/30 px-3 py-1 hover:bg-amber-500/10 transition-colors"
-                    >
-                      {editingPromptId === prompt.id ? '[ CLOSE ]' : '[ EDIT ]'}
-                    </button>
-                  </div>
 
-                  {editingPromptId === prompt.id && (
-                    <div className="space-y-4 mt-4 pt-4 border-t border-foreground/10">
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">TEMPLATE_</label>
-                        <textarea
-                          value={prompt.template}
-                          onChange={(e) => updatePrompt(prompt.id, 'template', e.target.value)}
-                          rows={4}
-                          className="bg-transparent border border-foreground/20 p-3 focus:outline-none focus:border-amber-500 font-mono text-xs text-foreground transition-colors resize-none"
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
+                    {editingPromptId === prompt.id && (
+                      <div className="space-y-4 mt-4 pt-4 border-t border-foreground/10">
                         <div className="flex flex-col gap-2">
-                          <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">MODEL_</label>
-                          <select
-                            value={prompt.model}
-                            onChange={(e) => updatePrompt(prompt.id, 'model', e.target.value)}
-                            className="bg-[#050505] border border-foreground/20 p-2 font-mono text-xs text-foreground focus:outline-none focus:border-amber-500"
-                          >
-                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                            <option value="gpt-4o">GPT-4o</option>
-                            <option value="claude-opus-4">Claude Opus 4</option>
-                          </select>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">TEMP_ [{prompt.temperature}]</label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={prompt.temperature}
-                            onChange={(e) => updatePrompt(prompt.id, 'temperature', Number(e.target.value))}
-                            className="w-full accent-amber-500"
+                          <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">TEMPLATE_</label>
+                          <textarea
+                            value={prompt.template}
+                            onChange={(e) => updatePrompt(prompt.id, 'template', e.target.value)}
+                            rows={4}
+                            className="bg-transparent border border-foreground/20 p-3 focus:outline-none focus:border-amber-500 font-mono text-xs text-foreground transition-colors resize-none"
                           />
                         </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">MAX_TOKENS_</label>
-                          <input
-                            type="number"
-                            value={prompt.max_tokens}
-                            onChange={(e) => updatePrompt(prompt.id, 'max_tokens', Number(e.target.value))}
-                            className="bg-transparent border border-foreground/20 p-2 font-mono text-xs text-foreground focus:outline-none focus:border-amber-500"
-                          />
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="flex flex-col gap-2">
+                            <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">MODEL_</label>
+                            <select
+                              value={prompt.model}
+                              onChange={(e) => updatePrompt(prompt.id, 'model', e.target.value)}
+                              className="bg-[#050505] border border-foreground/20 p-2 font-mono text-xs text-foreground focus:outline-none focus:border-amber-500"
+                            >
+                              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                            </select>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">TEMP_ [{prompt.temperature}]</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.1"
+                              value={prompt.temperature}
+                              onChange={(e) => updatePrompt(prompt.id, 'temperature', Number(e.target.value))}
+                              className="w-full accent-amber-500"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-[10px] text-foreground/50 font-mono uppercase tracking-widest">MAX_TOKENS_</label>
+                            <input
+                              type="number"
+                              value={prompt.max_tokens}
+                              onChange={(e) => updatePrompt(prompt.id, 'max_tokens', Number(e.target.value))}
+                              className="bg-transparent border border-foreground/20 p-2 font-mono text-xs text-foreground focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
                         </div>
                       </div>
-                      <p className="font-mono text-[10px] text-foreground/30">
-                        Last updated: {new Date(prompt.updated_at).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    )}
+                  </div>
+                ))}
+                {prompts.length === 0 && (
+                  <p className="font-mono text-xs text-muted-foreground p-6 border border-foreground/10">
+                    No prompts loaded. Backend may be unavailable.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
+          {/* Section 5: Analytics */}
           <div className="border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-8">
             <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-foreground/10 pb-2 mb-6">
               05 // Visitor Analytics
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="border border-foreground/10 bg-foreground/5 p-4 text-center">
-                <span className="block text-3xl font-bold tracking-tighter text-amber-500">{analytics.total_visitors}</span>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Total</span>
+            {analyticsLoading ? (
+              <div className="flex items-center gap-3 p-6 text-muted-foreground font-mono text-xs">
+                <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                Loading analytics...
               </div>
-              <div className="border border-foreground/10 bg-foreground/5 p-4 text-center">
-                <span className="block text-3xl font-bold tracking-tighter text-amber-500">{analytics.visitors_this_week}</span>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">This Week</span>
-              </div>
-              {Object.entries(analytics.by_role).map(([role, count]) => (
-                <div key={role} className="border border-foreground/10 bg-foreground/5 p-4 text-center">
-                  <span className="block text-2xl font-bold tracking-tighter text-foreground">{count}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{role}</span>
+            ) : analytics ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                  <div className="border border-foreground/10 bg-foreground/5 p-4 text-center">
+                    <span className="block text-3xl font-bold tracking-tighter text-amber-500">{analytics.total_visitors}</span>
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Total</span>
+                  </div>
+                  <div className="border border-foreground/10 bg-foreground/5 p-4 text-center">
+                    <span className="block text-3xl font-bold tracking-tighter text-amber-500">{analytics.visitors_this_week}</span>
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">This Week</span>
+                  </div>
+                  {Object.entries(analytics.by_role).map(([role, count]) => (
+                    <div key={role} className="border border-foreground/10 bg-foreground/5 p-4 text-center">
+                      <span className="block text-2xl font-bold tracking-tighter text-foreground">{count}</span>
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{role}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="space-y-2">
-              <h3 className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 mb-3">Recent Visitors</h3>
-              {analytics.recent_visitors.map((v, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-foreground/5 border border-foreground/10 font-mono text-xs">
-                  <span className="text-foreground">{v.email}</span>
-                  <span className="text-amber-500 uppercase">{v.role}</span>
-                  <span className="text-muted-foreground">{v.company}</span>
+                <div className="space-y-2">
+                  <h3 className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 mb-3">Recent Visitors</h3>
+                  {analytics.recent_visitors.map((v, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-foreground/5 border border-foreground/10 font-mono text-xs">
+                      <span className="text-foreground">{v.email}</span>
+                      <span className="text-amber-500 uppercase">{v.role}</span>
+                      <span className="text-muted-foreground">{v.company}</span>
+                    </div>
+                  ))}
+                  {analytics.recent_visitors.length === 0 && (
+                    <p className="font-mono text-xs text-muted-foreground">No visitors yet.</p>
+                  )}
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <p className="font-mono text-xs text-muted-foreground p-6">Analytics unavailable.</p>
+            )}
           </div>
 
+          {/* Section 6: Backend Health */}
           <div className="border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-8">
             <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground border-b border-foreground/10 pb-2 mb-6">
               06 // Backend Health
@@ -343,7 +460,7 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-foreground font-bold uppercase tracking-tighter">System Online</p>
                 <p className="font-mono text-[10px] text-muted-foreground mt-1">
-                  Version: 1.0.0-dev | Last Sync: Awaiting backend connection
+                  JWT authenticated | Session TTL: 5 days
                 </p>
               </div>
             </div>
@@ -358,7 +475,7 @@ export default function AdminDashboard() {
             </button>
             {isSaved && (
               <span className="font-mono text-amber-500 text-xs uppercase tracking-widest animate-pulse">
-                Variables synced to KV Store
+                Configuration saved to backend
               </span>
             )}
           </div>
