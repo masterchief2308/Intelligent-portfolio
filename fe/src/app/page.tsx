@@ -19,6 +19,7 @@ export default function Home() {
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState<string[]>([]);
+  const [apiCalls, setApiCalls] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
@@ -28,6 +29,7 @@ export default function Home() {
 
     setLoading(true);
     setLoadingMessages(["INITIALIZING: Establishing secure uplink to LangGraph engine..."]);
+    setApiCalls(0);
     setError(null);
     
     try {
@@ -67,6 +69,9 @@ export default function Home() {
                 }
                 if (parsed.status) {
                   setLoadingMessages(prev => [...prev, parsed.status]);
+                }
+                if (parsed.api_calls !== undefined) {
+                  setApiCalls(parsed.api_calls);
                 }
                 if (parsed.result) {
                   finalData = parsed.result;
@@ -249,9 +254,12 @@ export default function Home() {
             {loading && (
               <div className="absolute inset-0 z-50 flex flex-col items-center justify-start pt-32">
                 <div className="bg-background text-foreground px-6 py-6 font-mono text-sm uppercase tracking-widest border border-amber-500/50 flex flex-col gap-6 shadow-[0_0_20px_rgba(245,158,11,0.2)] max-w-lg w-full">
-                  <div className="flex items-center gap-4 border-b border-foreground/10 pb-4">
-                    <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-amber-500 font-bold">PIPELINE ACTIVE</span>
+                  <div className="flex items-center gap-4 border-b border-foreground/10 pb-4 justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-amber-500 font-bold">PIPELINE ACTIVE</span>
+                    </div>
+                    <span className="text-amber-500/60 font-mono text-[10px] font-bold">[API CALLS: {apiCalls}/5]</span>
                   </div>
                   <div className="flex flex-col gap-3 min-h-[160px]">
                     {loadingMessages.map((msg, idx) => (

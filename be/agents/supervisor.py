@@ -159,17 +159,17 @@ async def run_personalization_stream(
                         else:
                             current_state[k] = v
 
-                # Yield a progress message
+                # Yield a progress message and API call count
                 msg_map = {
-                    "research_planner": "Research Planner defined intelligence strategy...",
-                    "company_researcher": "Company Researcher analyzed technical footprint...",
-                    "portfolio_rag": "Portfolio Engine located semantic matches...",
-                    "validator": "Validator scored strategic alignment...",
-                    "personalizer": "Executive Synthesis finalized blueprints..."
+                    "research_planner": {"msg": "Research Planner defined intelligence strategy...", "calls": 1},
+                    "company_researcher": {"msg": "Company Researcher analyzed technical footprint...", "calls": 3},
+                    "portfolio_rag": {"msg": "Portfolio Engine located semantic matches...", "calls": 3},
+                    "validator": {"msg": "Validator scored strategic alignment...", "calls": 4},
+                    "personalizer": {"msg": "Executive Synthesis finalized blueprints...", "calls": 5}
                 }
-                status_msg = msg_map.get(node_name, f"Completed step: {node_name}...")
+                step_info = msg_map.get(node_name, {"msg": f"Completed step: {node_name}...", "calls": 0})
                 
-                yield f"data: {json.dumps({'status': status_msg})}\n\n"
+                yield f"data: {json.dumps({'status': step_info['msg'], 'api_calls': step_info['calls']})}\n\n"
                 
         # Pipeline finished, yield final result
         final_payload = {
