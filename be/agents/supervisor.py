@@ -119,3 +119,69 @@ async def run_personalization(
         len(final_state.get("errors", [])),
     )
     return final_state
+
+
+async def run_personalization_stream(
+    email: str, role: str, company: str = ""
+):
+    """Execute the pipeline and yield server-sent events (SSE)."""
+    import json
+    
+    domain = email.split("@")[1] if "@" in email else ""
+    personalization_id = f"p_{email}_{int(time.time())}"
+
+    initial_state: PersonalizationState = {
+        "email": email,
+        "role": role,
+        "company": company,
+        "domain": domain,
+        "personalization_id": personalization_id,
+        "errors": [],
+    }
+
+    logger.info("▶ Starting personalization stream for %s", email)
+    start = time.time()
+    graph = get_graph()
+
+    try:
+        # Stream the graph execution
+        current_state = initial_state.copy()
+        
+        async for event in graph.astream(initial_state, stream_mode="updates"):
+            for node_name, state_updates in event.items():
+                logger.info("Completed node: %s", node_name)
+                
+                # Accumulate state updates
+                if isinstance(state_updates, dict):
+                    for k, v in state_updates.items():
+                        if k == "errors":
+                            current_state["errors"].extend(v)
+                        else:
+                            current_state[k] = v
+
+                # Yield a progress message
+                msg_map = {
+                    "research_planner": "Research Planner defined intelligence strategy...",
+                    "company_researcher": "Company Researcher analyzed technical footprint...",
+                    "portfolio_rag": "Portfolio Engine located semantic matches...",
+                    "validator": "Validator scored strategic alignment...",
+                    "personalizer": "Executive Synthesis finalized blueprints..."
+                }
+                status_msg = msg_map.get(node_name, f"Completed step: {node_name}...")
+                
+                yield f"data: {json.dumps({'status': status_msg})}\n\n"
+                
+        # Pipeline finished, yield final result
+        final_payload = {
+            "result": {
+                "personalization_id": current_state.get("personalization_id", ""),
+                "visitor_profile": current_state.get("visitor_profile", {}),
+                "website_config": current_state.get("website_config", {}),
+            }
+        }
+        yield f"data: {json.dumps(final_payload)}\n\n"
+
+    except Exception as e:
+        logger.error("Pipeline stream failed for %s: %s", email, e)
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+

@@ -15,21 +15,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Backend URL not configured" }, { status: 500 });
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 90000); // 90s timeout
-
     const backendResponse = await fetch(`${BACKEND_URL}/api/personalize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, role, company }),
-      signal: controller.signal,
     });
 
-    clearTimeout(timeout);
-
     if (backendResponse.ok) {
-      const data = await backendResponse.json();
-      return NextResponse.json(data);
+      return new Response(backendResponse.body, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
     }
 
     console.warn(`Backend returned ${backendResponse.status}, throwing error`);

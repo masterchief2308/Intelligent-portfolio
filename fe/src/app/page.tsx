@@ -8,6 +8,7 @@ import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { api } from '@/lib/api';
 import { motion } from 'framer-motion';
 import type { FeaturedProject } from '@/types';
+import React from 'react';
 
 export default function Home() {
   const { mounted, personalization, setPersonalization } = useHydrateSession();
@@ -17,54 +18,74 @@ export default function Home() {
   const [role, setRole] = useState("hiring");
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
+  const [loadingMessages, setLoadingMessages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-
-  const loadingMessages = useMemo(() => [
-    "INITIALIZING: Booting analytical framework...",
-    "DISCOVERY: Locating target domain vectors...",
-    "EXTRACTION: Analyzing public technical infrastructure...",
-    "RETRIEVAL: Semantically matching portfolio evidence...",
-    "SYNTHESIS: Compiling highly personalized case studies...",
-    "FINALIZING: Packaging dynamic website components..."
-  ], []);
-
-  // Cycle through loading steps while generating
-  React.useEffect(() => {
-    if (!loading) {
-      setLoadingStep(0);
-      return;
-    }
-    let currentStep = 0;
-    const interval = setInterval(() => {
-      currentStep++;
-      if (currentStep < loadingMessages.length) {
-        setLoadingStep(currentStep);
-      }
-    }, 4500); // Progress every 4.5 seconds
-    return () => clearInterval(interval);
-  }, [loading, loadingMessages]);
 
   async function handlePersonalization(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
 
     setLoading(true);
-    setLoadingStep(0);
+    setLoadingMessages(["INITIALIZING: Establishing secure uplink to LangGraph engine..."]);
     setError(null);
+    
     try {
       const response = await fetch("/api/personalize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, role, company })
       });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.detail || data.error || `HTTP Error ${response.status}`);
+
+      if (!response.ok || !response.body) {
+        throw new Error(`HTTP Error ${response.status}`);
       }
-      
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let finalData = null;
+      let buffer = "";
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          // Keep the last incomplete line in the buffer
+          buffer = lines.pop() || "";
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.replace('data: ', '').trim();
+              if (!jsonStr) continue;
+              try {
+                const parsed = JSON.parse(jsonStr);
+                if (parsed.error) {
+                  throw new Error(parsed.error);
+                }
+                if (parsed.status) {
+                  setLoadingMessages(prev => [...prev, parsed.status]);
+                }
+                if (parsed.result) {
+                  finalData = parsed.result;
+                }
+              } catch (e: any) {
+                if (e.message !== "Unexpected end of JSON input") {
+                  console.error("Failed to parse SSE JSON:", e);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (!finalData) {
+        throw new Error("Pipeline disconnected before returning blueprints.");
+      }
+
+      const data = finalData;
       if (data.visitor_profile) {
         data.visitor_profile.email = email;
       }
@@ -114,7 +135,7 @@ export default function Home() {
     }
 
     if (activeFilters.length === 0) return projects;
-    
+
     return projects.filter((fp: FeaturedProject) => {
       const fullProject = portfolio?.projects?.find(p => p.id === fp.id);
       if (!fullProject) return true;
@@ -134,7 +155,7 @@ export default function Home() {
           {!personalization ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
               <h1 className="text-6xl sm:text-7xl md:text-[7rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase">
-                {portfolio?.basics.name?.split(' ')[0] || 'Aditya'} <br/>
+                {portfolio?.basics.name?.split(' ')[0] || 'Aditya'} <br />
                 <span className="text-muted-foreground">Architect.</span>
               </h1>
 
@@ -195,7 +216,7 @@ export default function Home() {
                   </button>
                   {error && (
                     <div className="mt-4 p-4 border border-red-500 bg-red-500/10 text-red-500 font-mono text-xs uppercase tracking-widest">
-                      [BACKEND CAUGHT IN ERROR]<br/>
+                      [BACKEND CAUGHT IN ERROR]<br />
                       {error}
                     </div>
                   )}
@@ -233,17 +254,21 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col gap-3 min-h-[160px]">
                   {loadingMessages.map((msg, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className={`text-xs transition-all duration-500 ${
-                        idx < loadingStep ? "text-amber-500/40" : 
-                        idx === loadingStep ? "text-amber-500 animate-pulse font-bold" : 
-                        "text-foreground/20"
-                      }`}
+                          idx === loadingMessages.length - 1 ? "text-amber-500 animate-pulse font-bold" :
+                            "text-amber-500/40"
+                        }`}
                     >
                       [{String(idx + 1).padStart(2, '0')}] {msg}
                     </div>
                   ))}
+                  {loadingMessages.length > 0 && (
+                    <div className="text-xs text-amber-500 animate-pulse font-bold mt-2">
+                      [{String(loadingMessages.length + 1).padStart(2, '0')}] Processing...
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -260,11 +285,10 @@ export default function Home() {
                     <button
                       key={tag}
                       onClick={() => toggleFilter(tag)}
-                      className={`font-mono text-[10px] uppercase tracking-widest px-3 py-1 border transition-all ${
-                        activeFilters.includes(tag)
+                      className={`font-mono text-[10px] uppercase tracking-widest px-3 py-1 border transition-all ${activeFilters.includes(tag)
                           ? 'bg-amber-500/20 border-amber-500/50 text-amber-500'
                           : 'border-foreground/10 text-foreground/40 hover:border-foreground/30'
-                      }`}
+                        }`}
                     >
                       {tag}
                     </button>
