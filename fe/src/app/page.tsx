@@ -244,104 +244,108 @@ export default function Home() {
           )}
         </div>
 
-        <section className="relative border-t border-foreground/10 pt-16">
-          {loading && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-start pt-32">
-              <div className="bg-background text-foreground px-6 py-6 font-mono text-sm uppercase tracking-widest border border-amber-500/50 flex flex-col gap-6 shadow-[0_0_20px_rgba(245,158,11,0.2)] max-w-lg w-full">
-                <div className="flex items-center gap-4 border-b border-foreground/10 pb-4">
-                  <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-amber-500 font-bold">PIPELINE ACTIVE</span>
-                </div>
-                <div className="flex flex-col gap-3 min-h-[160px]">
-                  {loadingMessages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`text-xs transition-all duration-500 ${
-                          idx === loadingMessages.length - 1 ? "text-amber-500 animate-pulse font-bold" :
-                            "text-amber-500/40"
-                        }`}
-                    >
-                      [{String(idx + 1).padStart(2, '0')}] {msg}
-                    </div>
-                  ))}
-                  {loadingMessages.length > 0 && (
-                    <div className="text-xs text-amber-500 animate-pulse font-bold mt-2">
-                      [{String(loadingMessages.length + 1).padStart(2, '0')}] Processing...
-                    </div>
-                  )}
+        {(loading || personalization) && (
+          <section className="relative border-t border-foreground/10 pt-16">
+            {loading && (
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-start pt-32">
+                <div className="bg-background text-foreground px-6 py-6 font-mono text-sm uppercase tracking-widest border border-amber-500/50 flex flex-col gap-6 shadow-[0_0_20px_rgba(245,158,11,0.2)] max-w-lg w-full">
+                  <div className="flex items-center gap-4 border-b border-foreground/10 pb-4">
+                    <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-amber-500 font-bold">PIPELINE ACTIVE</span>
+                  </div>
+                  <div className="flex flex-col gap-3 min-h-[160px]">
+                    {loadingMessages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`text-xs transition-all duration-500 ${
+                            idx === loadingMessages.length - 1 ? "text-amber-500 animate-pulse font-bold" :
+                              "text-amber-500/40"
+                          }`}
+                      >
+                        [{String(idx + 1).padStart(2, '0')}] {msg}
+                      </div>
+                    ))}
+                    {loadingMessages.length > 0 && (
+                      <div className="text-xs text-amber-500 animate-pulse font-bold mt-2">
+                        [{String(loadingMessages.length + 1).padStart(2, '0')}] Processing...
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className={`transition-all duration-500 ${loading ? 'opacity-20 blur-md pointer-events-none' : 'opacity-100'}`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-16 gap-4">
-              <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Index: Production Systems</h2>
+            {personalization && (
+              <div className={`transition-all duration-500 ${loading ? 'opacity-20 blur-md pointer-events-none' : 'opacity-100'}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-16 gap-4">
+                  <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Index: Production Systems</h2>
 
-              {allCloudTags.length > 0 && (
-                <div className="flex gap-2 items-center flex-wrap">
-                  <span className="font-mono text-[10px] text-foreground/30 uppercase tracking-widest mr-2">Filter:</span>
-                  {allCloudTags.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleFilter(tag)}
-                      className={`font-mono text-[10px] uppercase tracking-widest px-3 py-1 border transition-all ${activeFilters.includes(tag)
-                          ? 'bg-amber-500/20 border-amber-500/50 text-amber-500'
-                          : 'border-foreground/10 text-foreground/40 hover:border-foreground/30'
-                        }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                  {activeFilters.length > 0 && (
-                    <span className="font-mono text-[10px] text-amber-500/60 uppercase tracking-widest ml-2">
-                      [{filteredProjects.length} of {personalization?.website_config?.featured_projects?.length || portfolio?.projects?.length || 0} MATCHING]
-                    </span>
+                  {allCloudTags.length > 0 && (
+                    <div className="flex gap-2 items-center flex-wrap">
+                      <span className="font-mono text-[10px] text-foreground/30 uppercase tracking-widest mr-2">Filter:</span>
+                      {allCloudTags.map(tag => (
+                        <button
+                          key={tag}
+                          onClick={() => toggleFilter(tag)}
+                          className={`font-mono text-[10px] uppercase tracking-widest px-3 py-1 border transition-all ${activeFilters.includes(tag)
+                              ? 'bg-amber-500/20 border-amber-500/50 text-amber-500'
+                              : 'border-foreground/10 text-foreground/40 hover:border-foreground/30'
+                            }`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                      {activeFilters.length > 0 && (
+                        <span className="font-mono text-[10px] text-amber-500/60 uppercase tracking-widest ml-2">
+                          [{filteredProjects.length} of {personalization?.website_config?.featured_projects?.length || portfolio?.projects?.length || 0} MATCHING]
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {filteredProjects.map((project: FeaturedProject, idx: number) => (
-                <Link
-                  href={`/projects/${project.id}`}
-                  key={project.id}
-                  className={`group relative flex flex-col justify-between border border-foreground/10 p-8 hover:bg-white/[0.04] bg-white/[0.01] backdrop-blur-sm transition-all duration-300 cursor-crosshair ${idx === 0 ? 'lg:col-span-2' : ''}`}
-                >
-                  <div className="flex flex-col mb-16">
-                    <h3 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase mb-6">
-                      {project.title}
-                    </h3>
-                    <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest max-w-xl leading-relaxed">
-                      {project.why_relevant}
-                    </p>
-                  </div>
-
-                  <div className="flex items-end justify-between border-t border-foreground/10 pt-8 mt-auto">
-                    <div>
-                      <div className="font-mono text-xs uppercase tracking-widest text-foreground bg-amber-500/20 px-3 py-1 mb-2 w-fit">
-                        [██████░░░] 80%
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {filteredProjects.map((project: FeaturedProject, idx: number) => (
+                    <Link
+                      href={`/projects/${project.id}`}
+                      key={project.id}
+                      className={`group relative flex flex-col justify-between border border-foreground/10 p-8 hover:bg-white/[0.04] bg-white/[0.01] backdrop-blur-sm transition-all duration-300 cursor-crosshair ${idx === 0 ? 'lg:col-span-2' : ''}`}
+                    >
+                      <div className="flex flex-col mb-16">
+                        <h3 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase mb-6">
+                          {project.title}
+                        </h3>
+                        <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest max-w-xl leading-relaxed">
+                          {project.why_relevant}
+                        </p>
                       </div>
-                      <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground block group-hover:text-foreground transition-colors">
-                        Click to Compile Architecture →
-                      </span>
-                    </div>
 
-                    <div className="text-right">
-                      <span className="block text-4xl md:text-5xl font-bold tracking-tighter text-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.2)] group-hover:text-amber-400 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all">
-                        {project.metric || '99.9%'}
-                      </span>
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-2 block">
-                        Core Metric
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
+                      <div className="flex items-end justify-between border-t border-foreground/10 pt-8 mt-auto">
+                        <div>
+                          <div className="font-mono text-xs uppercase tracking-widest text-foreground bg-amber-500/20 px-3 py-1 mb-2 w-fit">
+                            [██████░░░] 80%
+                          </div>
+                          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground block group-hover:text-foreground transition-colors">
+                            Click to Compile Architecture →
+                          </span>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="block text-4xl md:text-5xl font-bold tracking-tighter text-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.2)] group-hover:text-amber-400 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all">
+                            {project.metric || '99.9%'}
+                          </span>
+                          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-2 block">
+                            Core Metric
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );
