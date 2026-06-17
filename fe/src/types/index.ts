@@ -39,6 +39,7 @@ export interface Project {
   id: string;
   title: string;
   client: string;
+  company?: string;
   date: string;
   cloud: string;
   metric: string;

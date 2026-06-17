@@ -125,6 +125,23 @@ export default function JourneyPage() {
                     </li>
                   ))}
                 </ul>
+
+                {item.type === 'experience' && (portfolio?.projects?.filter(p => p.company === item.company)?.length ?? 0) > 0 && (
+                  <div className="mt-8 border-t border-foreground/10 pt-6">
+                    <h4 className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">Projects Built Here</h4>
+                    <div className="grid gap-4">
+                      {portfolio?.projects?.filter(p => p.company === item.company).map(p => (
+                        <div key={p.id} className="p-4 border border-foreground/10 bg-black/20 hover:border-amber-500/30 transition-colors cursor-pointer" onClick={() => router.push(`/projects/${p.id}`)}>
+                          <div className="flex justify-between items-start gap-4 mb-2">
+                            <h5 className="font-bold text-foreground">{p.title}</h5>
+                            <span className="font-mono text-[10px] uppercase text-amber-500 border border-amber-500/30 px-2 py-0.5 whitespace-nowrap">{p.metric}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2">{p.context}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
