@@ -43,8 +43,7 @@ steps:
       - '0'
       - '--max-instances'
       - '1'
-      - '--clear-secrets'
-      - '--update-secrets=/secrets/.env=PORTFOLIO_SECRETS:latest'
+      - '--set-secrets=/secrets/.env=PORTFOLIO_SECRETS:latest'
 
 images:
   - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:$COMMIT_SHA'
