@@ -38,10 +38,10 @@ class HeroConfig(BaseModel):
 class ProjectConfig(BaseModel):
     id: str = Field(description="Project slug ID")
     title: str = Field(description="Project name")
-    highlight: str = Field(description="CRITICAL: MUST be a thick 3-4 sentence paragraph highlighting exactly why this project is relevant to the visitor. NEVER use a 1-sentence summary.")
-    metric: str = Field(default="99.9%", description="A personalized core metric (e.g. '10X FASTER', '22% COST REDUCTION') tailored to the visitor's role. MUST BE SHORT AND PUNCHY (1-3 words max).")
+    highlight: str = Field(description="A short 1-sentence highlight.")
+    metric: str = Field(default="99.9%", description="CRITICAL: MUST be a COMPLETELY NEW, personalized core metric (e.g. '10X FASTER', '22% COST REDUCTION'). DO NOT copy the original static metric. Invent a plausible metric tailored to their role. MUST BE 1-3 words max.")
     metrics: list[str] = Field(default_factory=list, description="Key metrics")
-    why_relevant: str = Field(description="A 2-3 sentence deep-dive into the connection to the visitor's role/company.")
+    why_relevant: str = Field(description="CRITICAL: MUST be a completely original, thick 3-4 sentence paragraph explaining the strategic value for the visitor. Do NOT copy the existing project description or ROI. Generate new, highly tailored insights specifically connecting the tech to their role.")
 
 
 class SkillPriorityConfig(BaseModel):
