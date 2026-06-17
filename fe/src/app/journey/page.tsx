@@ -26,15 +26,15 @@ export default function JourneyPage() {
   const education = portfolio?.education || [];
 
   const timeline = [
-    ...experience.map(exp => ({ ...exp, type: 'experience' as const })),
-    ...education.map(edu => ({
+    ...(experience?.map(exp => ({ ...exp, type: 'experience' as const })) || []),
+    ...(education?.map(edu => ({
       company: edu.institution,
       role: edu.degree,
       startDate: edu.startDate,
       endDate: edu.endDate,
       highlights: [edu.cgpa],
       type: 'education' as const
-    }))
+    })) || [])
   ];
 
   const handleDownload = async () => {
@@ -98,7 +98,7 @@ export default function JourneyPage() {
 
               <div className="md:ml-[168px] border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-6 hover:bg-white/[0.04] transition-colors">
                 <ul className="space-y-4">
-                  {item.highlights.map((highlight, hIdx) => (
+                  {item.highlights?.map((highlight, hIdx) => (
                     <li key={hIdx} className="flex gap-4 items-start">
                       <span className="font-mono text-foreground/40 mt-1">/</span>
                       <p className="text-sm md:text-base text-foreground font-light leading-relaxed">{highlight}</p>

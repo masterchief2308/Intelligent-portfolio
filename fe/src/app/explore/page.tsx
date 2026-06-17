@@ -33,7 +33,7 @@ export default function ExploreGraph() {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const allSkills = new Set<string>();
-    projects.forEach(p => p.techStack.forEach(tech => allSkills.add(tech)));
+    projects.forEach(p => p.techStack?.forEach((tech: string) => allSkills.add(tech)));
     const uniqueSkills = Array.from(allSkills);
 
     const projectX = 0;
@@ -52,7 +52,7 @@ export default function ExploreGraph() {
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
       });
-      project.techStack.forEach((tech) => {
+      project.techStack?.forEach((tech: string) => {
         const skillId = `skill-${tech.replace(/\s+/g, '-')}`;
         edges.push({
           id: `edge-${pId}-${skillId}`,
