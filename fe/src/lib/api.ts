@@ -14,12 +14,18 @@ import type {
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-702455616797.asia-south1.run.app';
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const fullUrl = url.startsWith('http') ? url : `${BASE}${url}`;
+  const res = await fetch(fullUrl, {
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
   });
-  if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+  if (!res.ok) {
+    throw new Error(`API Error: ${res.status} ${res.statusText}`);
+  }
   return res.json();
 }
 
@@ -28,8 +34,10 @@ function authHeaders(token: string) {
 }
 
 export const api = {
-  getPortfolio: () =>
-    request<PortfolioData>('/api/portfolio'),
+  getPortfolio: (email?: string) => {
+    const url = email ? `/api/portfolio?email=${encodeURIComponent(email)}` : `/api/portfolio`;
+    return request<PortfolioData>(url);
+  },
 
   getProject: (slug: string, email?: string) => {
     const url = email ? `/api/project/${slug}?email=${encodeURIComponent(email)}` : `/api/project/${slug}`;

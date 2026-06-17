@@ -277,6 +277,27 @@ class FirestoreService:
         else:
             self._mem.setdefault("dynamic_architectures", {})[f"{key}_{slug}"] = data
 
+    async def get_dynamic_portfolio(self, email: str) -> Optional[dict]:
+        if not email:
+            return None
+        key = email.lower().strip()
+        if self._db:
+            doc = self._db.collection("personalizations").document(key).collection("portfolio").document("main").get()
+            return doc.to_dict() if doc.exists else None
+        
+        # In-memory fallback
+        return self._mem.setdefault("dynamic_portfolio", {}).get(key)
+
+    async def save_dynamic_portfolio(self, email: str, data: dict) -> None:
+        if not email:
+            return
+        key = email.lower().strip()
+        data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        if self._db:
+            self._db.collection("personalizations").document(key).collection("portfolio").document("main").set(data)
+        else:
+            self._mem.setdefault("dynamic_portfolio", {})[key] = data
+
 # Singleton
 _instance: Optional[FirestoreService] = None
 

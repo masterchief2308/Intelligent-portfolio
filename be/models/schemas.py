@@ -195,3 +195,25 @@ class DynamicArchitectureConfig(BaseModel):
     slug: str
     nodes: list[ArchitectureNode]
     edges: list[ArchitectureEdge]
+
+
+class DynamicExperienceConfig(BaseModel):
+    company: str
+    location: str
+    role: str
+    startDate: str
+    endDate: str
+    highlights: list[str] = Field(description="List of 4-6 detailed bullet points highlighting achievements, metrics, and technical contributions specifically tailored to impress the visitor.")
+
+
+class DynamicEducationConfig(BaseModel):
+    institution: str
+    degree: str
+    startDate: str
+    endDate: str
+    cgpa: str = Field(description="CGPA or academic achievements rewritten to emphasize analytical or relevant coursework.")
+
+
+class DynamicPortfolioConfig(BaseModel):
+    experience: list[DynamicExperienceConfig]
+    education: list[DynamicEducationConfig]

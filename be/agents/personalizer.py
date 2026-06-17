@@ -30,17 +30,17 @@ def _load_project_ids() -> list[str]:
 # ── Structured Output Models ─────────────────────────────────────
 
 class HeroConfig(BaseModel):
-    intro: str = Field(description="2-3 sentence personalized intro")
-    subheading: str = Field(description="What matters to this visitor")
+    intro: str = Field(description="A highly detailed 3-4 sentence personalized introduction paragraph explaining why my specific background is perfectly aligned with the visitor's needs.")
+    subheading: str = Field(description="A 2-sentence subheading highlighting the core value proposition for this visitor's company/role.")
     cta_text: str = Field(description="Call to action text")
 
 
 class ProjectConfig(BaseModel):
     id: str = Field(description="Project slug ID")
     title: str = Field(description="Project name")
-    highlight: str = Field(description="Why this visitor should care")
+    highlight: str = Field(description="A detailed 2-3 sentence highlight explaining exactly why this project is relevant to the visitor.")
     metrics: list[str] = Field(default_factory=list, description="Key metrics")
-    why_relevant: str = Field(description="Connection to visitor's role/company")
+    why_relevant: str = Field(description="A 2-3 sentence deep-dive into the connection to the visitor's role/company.")
 
 
 class SkillPriorityConfig(BaseModel):
@@ -105,9 +105,11 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
     messages = [
         SystemMessage(content=(
             "You are personalizing a portfolio website for a specific visitor. "
-            "Generate a COMPLETE website configuration. Be specific and personalized, "
+            "Generate a COMPLETE website configuration. Be highly specific, detailed, and personalized, "
             "not generic. Reference actual metrics and technologies from the portfolio.\n\n"
-            "IMPORTANT:\n"
+            "IMPORTANT RULES:\n"
+            "- CRITICAL: The hero `intro`, `subheading`, and project `highlight` MUST NOT be single-line summaries. "
+            "They MUST be comprehensive, detailed 3-4 sentence paragraphs that dive deep into why the portfolio matches the visitor's needs.\n"
             f"- Available project IDs: {project_ids_str}\n"
             "- Pick the most relevant projects for THIS visitor (up to 3)\n"
             "- The intro should feel human and conversational\n"

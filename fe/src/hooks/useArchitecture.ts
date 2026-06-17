@@ -7,26 +7,25 @@ import { Node, Edge, Position } from '@xyflow/react';
 import dagre from 'dagre';
 
 function getLayoutedElements(nodes: Node[], edges: Edge[], direction = 'TB') {
-  const dagreGraph = new dagre.graphlib.Graph();
+  const dagreGraph = new dagre.graphlib.Graph({ compound: true });
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   
   // Create a new graph with padding and spacing
   dagreGraph.setGraph({ rankdir: direction, nodesep: 80, ranksep: 150 });
 
-  // For React Flow groups, Dagre handles them if we set them as parents, but it's simpler
-  // to strip groups or just treat them as large background nodes. 
-  // Let's strip parentId to ensure dagre cleanly lays out everything flat.
-  const flatNodes = nodes.map(n => {
-    const { parentId, ...rest } = n;
-    return rest;
-  });
-
-  flatNodes.forEach((node) => {
-    // Group nodes are large backgrounds, we skip them from the layout flow and place them at 0,0
+  // Add all nodes to Dagre
+  nodes.forEach((node) => {
     if (node.type === 'group') {
-      // Don't add to dagre
+      dagreGraph.setNode(node.id, { label: node.data?.label });
     } else {
       dagreGraph.setNode(node.id, { width: 250, height: 60 });
+    }
+  });
+
+  // Assign parents
+  nodes.forEach((node) => {
+    if (node.parentId) {
+      dagreGraph.setParent(node.id, node.parentId);
     }
   });
 
@@ -36,11 +35,19 @@ function getLayoutedElements(nodes: Node[], edges: Edge[], direction = 'TB') {
 
   dagre.layout(dagreGraph);
 
-  const layoutedNodes = flatNodes.map((node) => {
-    if (node.type === 'group') {
-      return { ...node, position: { x: -200, y: -100 }, style: { width: 1200, height: 900 } };
-    }
+  const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
+    
+    if (node.type === 'group') {
+      // Dagre calculates the bounding box for compound nodes
+      // Add padding so children aren't touching the borders
+      return { 
+        ...node, 
+        position: { x: nodeWithPosition.x - (nodeWithPosition.width / 2) - 20, y: nodeWithPosition.y - (nodeWithPosition.height / 2) - 40 }, 
+        style: { width: nodeWithPosition.width + 40, height: nodeWithPosition.height + 60 } 
+      };
+    }
+
     return {
       ...node,
       targetPosition: Position.Top,
