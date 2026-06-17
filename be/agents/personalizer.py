@@ -38,7 +38,8 @@ class HeroConfig(BaseModel):
 class ProjectConfig(BaseModel):
     id: str = Field(description="Project slug ID")
     title: str = Field(description="Project name")
-    highlight: str = Field(description="A detailed 2-3 sentence highlight explaining exactly why this project is relevant to the visitor.")
+    highlight: str = Field(description="CRITICAL: MUST be a thick 3-4 sentence paragraph highlighting exactly why this project is relevant to the visitor. NEVER use a 1-sentence summary.")
+    metric: str = Field(default="99.9%", description="A personalized core metric (e.g. '10X FASTER', '22% COST REDUCTION') tailored to the visitor's role. MUST BE SHORT AND PUNCHY (1-3 words max).")
     metrics: list[str] = Field(default_factory=list, description="Key metrics")
     why_relevant: str = Field(description="A 2-3 sentence deep-dive into the connection to the visitor's role/company.")
 
@@ -153,24 +154,27 @@ def _fallback_config(visitor_profile: dict) -> dict:
             {
                 "id": "iocl-tender-evaluation",
                 "title": "IOCL Tender Evaluation Platform",
-                "highlight": "End-to-end AI pipeline on GKE",
+                "highlight": "An end-to-end AI pipeline built on GKE that specifically matches your enterprise architecture needs.",
+                "metric": "95% RELIABILITY",
                 "metrics": ["95% reliability", "69% latency reduction"],
-                "why_relevant": f"Production-scale engineering relevant to {company}",
+                "why_relevant": f"Production-scale engineering highly relevant to {company}.",
             },
             {
                 "id": "km-tech-int-forensics",
                 "title": "KM-Tech-Int Digital Forensics",
-                "highlight": "Knowledge graph + RAG system",
+                "highlight": "A powerful knowledge graph and RAG system demonstrating deep expertise in data processing.",
+                "metric": "10X FASTER",
                 "metrics": ["10x faster analysis"],
-                "why_relevant": "Complex data systems expertise",
+                "why_relevant": "Directly applies to complex data systems and search requirements.",
             },
             {
                 "id": "azolla-casper",
-                "title": "Azolla CASPER: Maritime Emissions",
-                "highlight": "ML forecasting + compliance SaaS",
+                "title": "Azolla Casper",
+                "highlight": "A machine learning forecasting and compliance SaaS platform.",
+                "metric": "50K EUR SAVED",
                 "metrics": ["<50K EUR error"],
-                "why_relevant": "Full-stack product development with ML",
-            },
+                "why_relevant": "Full-stack product development with ML.",
+            }
         ],
         "skills_priority": [
             {"skill": "RAG Systems", "priority": 1, "proof": "Production RAG at IOCL"},
