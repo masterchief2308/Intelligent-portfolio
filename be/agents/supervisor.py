@@ -109,17 +109,7 @@ async def run_personalization(
         final_state = await graph.ainvoke(initial_state)
     except Exception as e:
         logger.error("Pipeline failed for %s: %s", email, e)
-        # Return state with fallback
-        initial_state["errors"] = [str(e)]
-        initial_state["validation_score"] = 0.0
-        initial_state["visitor_profile"] = {
-            "email": email,
-            "domain": domain,
-            "role": role,
-            "current_company": company or domain,
-        }
-        initial_state["website_config"] = _fallback_config(email, role, company or domain)
-        return initial_state
+        raise e
 
     elapsed = time.time() - start
     logger.info(
@@ -129,36 +119,3 @@ async def run_personalization(
         len(final_state.get("errors", [])),
     )
     return final_state
-
-
-def _fallback_config(email: str, role: str, company: str) -> dict:
-    """Minimal fallback when the entire pipeline fails."""
-    name = email.split("@")[0].replace(".", " ").title()
-    return {
-        "hero": {
-            "intro": f"Welcome {name}! I'm a Full Stack GenAI Engineer with production experience in LLM pipelines, RAG systems, and cloud-native AI infrastructure.",
-            "subheading": "Building systems that ship and scale",
-            "cta_text": "Explore my work",
-        },
-        "featured_projects": [
-            {
-                "id": "iocl-tender-evaluation",
-                "title": "IOCL Tender Evaluation Platform",
-                "highlight": "End-to-end AI pipeline",
-                "metrics": ["95% reliability"],
-                "why_relevant": "Production-scale engineering",
-            }
-        ],
-        "skills_priority": [],
-        "journey_highlights": [],
-        "chat_context": {
-            "opener": "Ask me anything about my projects!",
-            "focus_areas": ["projects", "architecture", "experience"],
-            "avoid": [],
-        },
-        "suggested_queries": [
-            "Tell me about your projects",
-            "What's your tech stack?",
-            "How do you approach system design?",
-        ],
-    }
