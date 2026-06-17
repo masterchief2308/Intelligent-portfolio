@@ -43,8 +43,6 @@ steps:
       - '0'
       - '--max-instances'
       - '1'
-      - '--set-secrets=GEMINI_API_KEY=GEMINI_API_KEY:latest,QDRANT_API_KEY=QDRANT_API_KEY:latest,ADMIN_PASSPHRASE=ADMIN_PASSPHRASE:latest,JWT_SECRET=JWT_SECRET:latest'
-      - '--set-env-vars=^@^QDRANT_URL=https://de007058-12ec-4d2a-875a-c6c120dbcd95.eu-west-2-0.aws.cloud.qdrant.io:6333^@^USE_FIRESTORE=False^@^FIRESTORE_PROJECT_ID=gen-lang-client-0511428447^@^CORS_ORIGINS=http://localhost:3000,https://intelligent-portfolio-voyp.onrender.com'
 
 images:
   - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:$COMMIT_SHA'
