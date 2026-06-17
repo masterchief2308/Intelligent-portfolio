@@ -18,7 +18,7 @@ def get_flash_llm() -> ChatGoogleGenerativeAI:
     settings = get_settings()
     return ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
-        google_api_key=settings.GEMINI_API_KEY,
+        api_key=settings.GEMINI_API_KEY,
         temperature=0.7,
     )
 
@@ -29,6 +29,6 @@ def get_pro_llm() -> ChatGoogleGenerativeAI:
     settings = get_settings()
     return ChatGoogleGenerativeAI(
         model="gemini-2.5-pro",
-        google_api_key=settings.GEMINI_API_KEY,
+        api_key=settings.GEMINI_API_KEY,
         temperature=0.7,
     )

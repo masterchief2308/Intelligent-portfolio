@@ -54,6 +54,10 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up Intelligent Portfolio backend v%s", settings.BACKEND_VERSION)
 
     # Initialize services
+    import os
+    os.environ["GEMINI_API_KEY"] = settings.GEMINI_API_KEY
+    os.environ["GOOGLE_API_KEY"] = settings.GEMINI_API_KEY
+
     get_firestore(
         use_firestore=settings.USE_FIRESTORE,
         project_id=settings.FIRESTORE_PROJECT_ID,
