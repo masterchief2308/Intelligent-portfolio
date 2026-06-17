@@ -81,7 +81,12 @@ async def get_architecture(slug: str, email: str | None = Query(None)):
             "that matter to this visitor. "
             "For example, for a Frontend Engineer, you might expand on the React node. "
             "For a Manager, you might simplify the backend microservices into a single 'Business Logic' group. "
-            "Do NOT hallucinate technologies that weren't in the original."
+            "CRITICAL LAYOUT RULES: "
+            "1. If you create a node of type 'group' (e.g. for a Cloud Provider or Kubernetes Cluster), "
+            "you MUST assign `parentId='the_group_id'` to all child nodes that belong inside it! "
+            "If you do not assign parentIds, the groups will render empty and break the layout. "
+            "2. Ensure all parentId references point to a valid existing group node id. "
+            "3. Do NOT hallucinate technologies that weren't in the original."
         )),
         HumanMessage(content=(
             f"VISITOR PROFILE:\n{json.dumps(visitor_profile, indent=2)}\n\n"
