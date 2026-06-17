@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useHydrateSession } from '@/hooks/useHydrateSession';
 import { useProject } from '@/hooks/useProject';
 import { useArchitecture } from '@/hooks/useArchitecture';
