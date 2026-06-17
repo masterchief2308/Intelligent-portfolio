@@ -17,7 +17,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/api/personalize", response_model=PersonalizeResponse)
 @limiter.limit("5/minute")
-async def personalize(request: PersonalizeRequest, req: Request):
+async def personalize(request: Request, personalize_request: PersonalizeRequest):
     """Personalize the website for a visitor.
     1. Check Firestore cache (24h TTL).
     2. If miss, run the full LangGraph 5-agent pipeline.
@@ -26,9 +26,9 @@ async def personalize(request: PersonalizeRequest, req: Request):
     firestore = get_firestore()
 
     # Check cache first
-    cached = await firestore.get_personalization(request.email)
+    cached = await firestore.get_personalization(personalize_request.email)
     if cached:
-        logger.info("Cache hit for %s", request.email)
+        logger.info("Cache hit for %s", personalize_request.email)
         return PersonalizeResponse(
             personalization_id=cached.get("personalization_id", ""),
             visitor_profile=cached.get("visitor_profile", {}),
