@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/usePortfolioStore';
 import { api } from '@/lib/api';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import type { ChatResponse } from '@/types';
 
 interface Message {
@@ -16,6 +19,7 @@ interface Message {
 export default function ChatWidget() {
   const { personalization } = usePortfolioStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,10 +84,18 @@ export default function ChatWidget() {
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-36 right-6 z-50 w-[380px] h-[500px] border border-foreground/20 bg-[#050505] shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col">
+        <div className={`fixed z-50 flex flex-col border border-foreground/20 bg-[#050505] shadow-[0_0_40px_rgba(0,0,0,0.5)] transition-all duration-300 ${isFullScreen ? 'inset-4 md:inset-12 bottom-36 md:bottom-12' : 'bottom-36 right-6 w-[380px] h-[500px]'}`}>
           <div className="px-4 py-3 border-b border-foreground/10 flex items-center justify-between">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-amber-500">Portfolio Assistant</span>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/30">RAG</span>
+            <div className="flex items-center gap-4">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-amber-500">Portfolio Assistant</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/30">RAG</span>
+            </div>
+            <button
+              onClick={() => setIsFullScreen(!isFullScreen)}
+              className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 hover:text-amber-500 transition-colors"
+            >
+              {isFullScreen ? '[ MINIMIZE ]' : '[ MAXIMIZE ]'}
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -108,12 +120,23 @@ export default function ChatWidget() {
 
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] p-3 font-mono text-xs leading-relaxed ${
+                <div className={`${isFullScreen ? 'max-w-[70%]' : 'max-w-[85%]'} p-4 ${
                   msg.role === 'user'
-                    ? 'bg-amber-500/10 border border-amber-500/30 text-foreground'
-                    : 'bg-foreground/5 border border-foreground/10 text-foreground/90'
+                    ? 'bg-amber-500/10 border border-amber-500/30 text-foreground font-mono text-xs'
+                    : 'bg-foreground/5 border border-foreground/10'
                 }`}>
-                  {msg.content}
+                  {msg.role === 'user' ? (
+                    msg.content
+                  ) : (
+                    <div className="prose prose-invert prose-amber max-w-none prose-sm font-mono text-xs prose-p:leading-relaxed prose-pre:bg-foreground/10 prose-pre:border prose-pre:border-foreground/20 prose-a:text-amber-500 hover:prose-a:text-amber-400 prose-headings:text-foreground prose-strong:text-amber-500">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
 
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="mt-3 pt-2 border-t border-foreground/10 space-y-1">
