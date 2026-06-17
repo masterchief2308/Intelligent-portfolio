@@ -60,8 +60,6 @@ export function useArchitecture(slug: string) {
         return fallback ?? undefined;
       }
     },
-    staleTime: 5 * 60_000,
-    initialData: fallback ?? undefined,
     enabled: !!slug,
   });
 }
