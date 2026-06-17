@@ -35,7 +35,7 @@ class Settings(BaseSettings):
         from models.schemas import ScrapeTokenConfig
         return ScrapeTokenConfig()
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    model_config = {"env_file": [".env", "/secrets/.env"], "extra": "ignore"}
 
 
 @lru_cache
