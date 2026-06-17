@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
     const backendResponse = await fetch(`${BACKEND_URL}/api/personalize`, {
       method: "POST",
