@@ -67,8 +67,8 @@ async def get_project(slug: str, email: str | None = Query(None)):
         logger.warning("Failed to fetch visitor profile for dynamic generation: %s", e)
 
     if not visitor_profile:
-        # If we can't find the profile, just return static
-        return static_project
+        # If we can't find the profile, throw an error instead of silently falling back
+        raise HTTPException(status_code=401, detail="Visitor profile not found in database. Please return to the home page and re-enter your details.")
 
     # 3. Generate via Gemini Pro
     logger.info("Generating dynamic project %s for %s", slug, email)

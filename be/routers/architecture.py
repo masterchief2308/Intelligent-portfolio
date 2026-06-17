@@ -65,7 +65,7 @@ async def get_architecture(slug: str, email: str | None = Query(None)):
         logger.warning("Failed to fetch visitor profile: %s", e)
 
     if not visitor_profile:
-        return static_arch
+        raise HTTPException(status_code=401, detail="Visitor profile not found in database. Please return to the home page and re-enter your details.")
 
     # 3. Generate via Gemini Pro
     logger.info("Generating dynamic architecture %s for %s", slug, email)

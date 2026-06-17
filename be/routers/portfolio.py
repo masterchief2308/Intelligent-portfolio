@@ -81,7 +81,7 @@ async def get_portfolio(email: str | None = Query(None)):
         logger.warning("Failed to fetch visitor profile for portfolio: %s", e)
 
     if not visitor_profile:
-        return static_portfolio
+        raise HTTPException(status_code=401, detail="Visitor profile not found in database. Please return to the home page and re-enter your details.")
 
     # 3. Generate via Gemini Flash (faster to prevent timeouts)
     logger.info("Generating dynamic portfolio timeline & explore graph for %s", email)
