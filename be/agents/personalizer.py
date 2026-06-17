@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def _load_project_ids() -> list[str]:
-    \"\"\"Dynamically load project IDs from portfolio.json.\"\"\"
+    """Dynamically load project IDs from portfolio.json."""
     data_path = Path(__file__).parent.parent / "data" / "portfolio.json"
     try:
         portfolio = json.loads(data_path.read_text(encoding="utf-8"))
@@ -62,7 +62,7 @@ class ChatContextConfig(BaseModel):
 
 
 class WebsiteConfigOutput(BaseModel):
-    \"\"\"The full website configuration generated for a specific visitor.\"\"\"
+    """The full website configuration generated for a specific visitor."""
     hero: HeroConfig
     featured_projects: list[ProjectConfig]
     skills_priority: list[SkillPriorityConfig] = Field(default_factory=list)
@@ -74,7 +74,7 @@ class WebsiteConfigOutput(BaseModel):
 # ── Agent Function ───────────────────────────────────────────────
 
 async def personalizer(state: PersonalizationState) -> PersonalizationState:
-    \"\"\"Generate the complete website_config using Gemini Flash with strict constraints.\"\"\"
+    """Generate the complete website_config using Gemini Flash with strict constraints."""
     visitor_profile = state.get("visitor_profile", {})
     company_data = state.get("company_data", {})
     portfolio_chunks = state.get("portfolio_chunks", [])
