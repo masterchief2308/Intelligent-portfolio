@@ -14,8 +14,7 @@ async def get_resume():
     """Download the resume PDF."""
     # Look for resume PDF in project root and data dir
     search_paths = [
-        Path(__file__).parent.parent / "data" / "Aditya_Katkar_Resume.pdf",
-        Path(__file__).parent.parent.parent / "Aditya_katkar_resume.pdf",
+        Path(__file__).parent.parent / "data" / "Aditya_katkar_resume.pdf",
     ]
 
     for path in search_paths:
@@ -23,7 +22,7 @@ async def get_resume():
             return FileResponse(
                 path=str(path),
                 media_type="application/pdf",
-                filename="Aditya_Katkar_Resume.pdf",
+                filename="Aditya_katkar_resume.pdf",
             )
 
     raise HTTPException(status_code=404, detail="Resume PDF not found")

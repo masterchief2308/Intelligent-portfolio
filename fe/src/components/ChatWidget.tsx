@@ -9,6 +9,8 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import type { ChatResponse } from '@/types';
 
+import { MessageCircle, X } from 'lucide-react';
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -75,8 +77,8 @@ export default function ChatWidget() {
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-20 right-6 z-50 w-12 h-12 bg-amber-500 hover:bg-amber-400 transition-colors flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)] group"
       >
-        <span className="font-mono text-background text-lg font-bold group-hover:scale-110 transition-transform">
-          {isOpen ? '×' : '?'}
+        <span className="font-mono text-background text-lg font-bold group-hover:scale-110 transition-transform flex items-center justify-center">
+          {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
         </span>
         {!isOpen && messages.length === 0 && (
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-foreground rounded-full animate-pulse" />
