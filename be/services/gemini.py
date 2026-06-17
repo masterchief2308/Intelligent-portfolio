@@ -28,7 +28,7 @@ def get_pro_llm() -> ChatGoogleGenerativeAI:
     """Gemini 2.5 Pro — higher quality. Used for personalization generation only."""
     settings = get_settings()
     return ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash", # Swapped to flash to fix 180s timeout crash
+        model="gemini-2.5-pro",
         api_key=settings.GEMINI_API_KEY,
         temperature=0.7,
     )

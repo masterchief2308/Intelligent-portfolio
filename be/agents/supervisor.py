@@ -42,7 +42,7 @@ def build_personalization_graph() -> StateGraph:
     └────────┬─────────┘
              │
     ┌────────▼─────────┐
-    │   personalizer    │  (Gemini Pro — quality generation)
+    │   personalizer    │  (Gemini Flash — swapped from Pro to fix 180s timeouts)
     └────────┬─────────┘
              │
            [END]
