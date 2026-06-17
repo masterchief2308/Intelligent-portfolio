@@ -86,7 +86,8 @@ async def get_architecture(slug: str, email: str | None = Query(None)):
             "you MUST assign `parentId='the_group_id'` to all child nodes that belong inside it! "
             "If you do not assign parentIds, the groups will render empty and break the layout. "
             "2. Ensure all parentId references point to a valid existing group node id. "
-            "3. Do NOT hallucinate technologies that weren't in the original."
+            "3. Do NOT hallucinate technologies that weren't in the original.\n"
+            "- CONFIDENTIALITY & LEGAL COMPLIANCE: Do not reveal proprietary source code, internal IP, raw database schemas, explicit internal client metrics/financials that are not public, or project-specific sensitive data that would violate the India Information Technology Act or corporate NDAs. Generalize sensitive architectural details when necessary."
         )),
         HumanMessage(content=(
             f"VISITOR PROFILE:\n{json.dumps(visitor_profile, indent=2)}\n\n"

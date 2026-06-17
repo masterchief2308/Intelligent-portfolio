@@ -82,7 +82,8 @@ async def get_project(slug: str, email: str | None = Query(None)):
             "Keep the core facts and metrics truthful to the original static project, but change the focus. "
             "For example, if the visitor is a 'Business Executive', focus on ROI, timeline, and cost savings. "
             "If the visitor is a 'Backend Engineer', emphasize architecture, scale, latency, and tools used. "
-            "Do NOT hallucinate metrics that aren't in the original text."
+            "Do NOT hallucinate metrics that aren't in the original text.\n"
+            "- CONFIDENTIALITY & LEGAL COMPLIANCE: Do not reveal proprietary source code, internal IP, raw database schemas, explicit internal client metrics/financials that are not public, or project-specific sensitive data that would violate the India Information Technology Act or corporate NDAs. Generalize sensitive details when necessary."
         )),
         HumanMessage(content=(
             f"VISITOR PROFILE:\n{json.dumps(visitor_profile, indent=2)}\n\n"

@@ -104,7 +104,8 @@ async def compare_resume(
         SystemMessage(content=(
             "You are comparing a candidate's resume against a portfolio of projects. "
             "Score the relevancy (0.0 to 1.0) of the resume to each portfolio project. "
-            "Extract skills from the resume. Be honest and specific."
+            "Extract skills from the resume. Be honest and specific.\n"
+            "- CONFIDENTIALITY & LEGAL COMPLIANCE: Do not reveal proprietary source code, internal IP, raw database schemas, explicit internal client metrics/financials that are not public, or project-specific sensitive data that would violate the India Information Technology Act or corporate NDAs. Generalize sensitive details when necessary."
         )),
         HumanMessage(content=(
             f"RESUME TEXT (first 3000 chars):\n{resume_text[:3000]}\n\n"

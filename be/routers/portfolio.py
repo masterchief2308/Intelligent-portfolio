@@ -85,7 +85,8 @@ async def get_portfolio(email: str | None = Query(None)):
             "Rewrite the 'experience' and 'education' arrays to specifically appeal to the visitor's role, industry, and background. "
             "For each experience, write 4-6 detailed bullet points highlighting the achievements, technical skills, and metrics "
             "that matter most to THIS visitor. Do NOT hallucinate jobs or degrees that don't exist in the original. "
-            "Keep dates, companies, and roles strictly accurate, but change the focus of the bullet points."
+            "Keep dates, companies, and roles strictly accurate, but change the focus of the bullet points.\n"
+            "- CONFIDENTIALITY & LEGAL COMPLIANCE: Do not reveal proprietary source code, internal IP, raw database schemas, explicit internal client metrics/financials that are not public, or project-specific sensitive data that would violate the India Information Technology Act or corporate NDAs. Generalize sensitive details when necessary."
         )),
         HumanMessage(content=(
             f"VISITOR PROFILE:\n{json.dumps(visitor_profile, indent=2)}\n\n"
