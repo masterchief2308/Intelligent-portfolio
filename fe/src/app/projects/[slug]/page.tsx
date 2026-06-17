@@ -8,6 +8,7 @@ import { useArchitecture } from '@/hooks/useArchitecture';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactFlow, Background, Controls, Handle, Position } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import dagre from 'dagre';
 
 const BrutalistNode = ({ data }: { data: any }) => (
   <div className={`
@@ -81,7 +82,49 @@ export default function ProjectDetail() {
   const baseNodes = archData?.nodes || [];
   const baseEdges = archData?.edges || [];
 
-  const displayNodes = baseNodes.map(node => {
+  const { layoutedNodes, layoutedEdges } = useMemo(() => {
+    if (!baseNodes.length) return { layoutedNodes: [], layoutedEdges: [] };
+    
+    const dagreGraph = new dagre.graphlib.Graph();
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
+    dagreGraph.setGraph({ rankdir: 'LR', ranksep: 150, nodesep: 100 });
+
+    baseNodes.forEach((node: any) => {
+      // Set group node dimensions larger
+      if (node.type === 'group') {
+        dagreGraph.setNode(node.id, { width: 500, height: 400 });
+      } else {
+        dagreGraph.setNode(node.id, { width: 180, height: 50 });
+      }
+    });
+
+    baseEdges.forEach((edge: any) => {
+      dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    dagre.layout(dagreGraph);
+
+    const layoutedNodes = baseNodes.map((node: any) => {
+      const nodeWithPosition = dagreGraph.node(node.id);
+      
+      // If it's a child node, we need to adjust its position relative to parent?
+      // Actually React Flow handles relative positioning for child nodes if parentId is set
+      // and position is relative to parent. Dagre might struggle with nested groups out of the box,
+      // but setting explicit positions helps.
+      
+      return {
+        ...node,
+        position: {
+          x: nodeWithPosition.x - (node.type === 'group' ? 250 : 90),
+          y: nodeWithPosition.y - (node.type === 'group' ? 200 : 25),
+        },
+      };
+    });
+
+    return { layoutedNodes, layoutedEdges: baseEdges };
+  }, [baseNodes, baseEdges]);
+
+  const displayNodes = layoutedNodes.map(node => {
     if (!selectedNodeId) return { ...node, style: { ...node.style, transition: 'opacity 0.3s' } };
 
     const connectedEdges = baseEdges.filter(e => e.source === selectedNodeId || e.target === selectedNodeId);
@@ -105,7 +148,7 @@ export default function ProjectDetail() {
     };
   });
 
-  const displayEdges = baseEdges.map(edge => {
+  const displayEdges = layoutedEdges.map(edge => {
     if (!selectedNodeId) return { ...edge, style: { ...edge.style, transition: 'opacity 0.3s, stroke 0.3s' } };
 
     const isActive = edge.source === selectedNodeId || edge.target === selectedNodeId;

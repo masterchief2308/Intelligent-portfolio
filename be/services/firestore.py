@@ -84,17 +84,26 @@ class FirestoreService:
             self._mem["personalizations"][key] = data
 
     async def clear_personalizations(self) -> int:
-        """Clear all cached personalizations. Returns count cleared."""
+        """Clear all cached personalizations and their subcollections. Returns count cleared."""
         if self._db:
             docs = self._db.collection("personalizations").stream()
             count = 0
             for doc in docs:
+                # Delete subcollections first
+                for sub_name in ["projects", "architectures", "portfolio"]:
+                    sub_docs = doc.reference.collection(sub_name).stream()
+                    for sub_doc in sub_docs:
+                        sub_doc.reference.delete()
+                # Delete the parent document
                 doc.reference.delete()
                 count += 1
             return count
 
         count = len(self._mem["personalizations"])
         self._mem["personalizations"].clear()
+        self._mem["dynamic_projects"] = {}
+        self._mem["dynamic_architectures"] = {}
+        self._mem["dynamic_portfolio"] = {}
         return count
 
     # ── Chat Sessions (5-day TTL) ────────────────────────────────
