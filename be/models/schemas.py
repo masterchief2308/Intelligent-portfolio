@@ -214,6 +214,14 @@ class DynamicEducationConfig(BaseModel):
     cgpa: str = Field(description="CGPA or academic achievements rewritten to emphasize analytical or relevant coursework.")
 
 
+class DynamicProjectGraphConfig(BaseModel):
+    id: str = Field(description="Project ID (must exactly match the original)")
+    title: str = Field(description="Project title, slightly tailored if needed")
+    cloud: str = Field(description="Cloud provider used")
+    techStack: list[str] = Field(description="List of technologies used in the project, prioritized or customized for the visitor's tech interests")
+
+
 class DynamicPortfolioConfig(BaseModel):
     experience: list[DynamicExperienceConfig]
     education: list[DynamicEducationConfig]
+    projects: list[DynamicProjectGraphConfig]
