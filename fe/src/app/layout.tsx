@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 import BlueprintCanvas from "@/components/BlueprintCanvas";
 import QueryProvider from "@/providers/QueryProvider";
@@ -35,11 +36,11 @@ export default function RootLayout({
         <QueryProvider>
           <div className="fixed inset-6 pointer-events-none z-50 flex flex-col justify-between text-foreground">
             <div className="flex justify-between items-start w-full">
-              <a href="/" className="pointer-events-auto font-mono text-[10px] uppercase tracking-widest hover:opacity-50 transition-opacity">Aditya.<br/>Architect</a>
-              <a href="/explore" className="pointer-events-auto font-mono text-[10px] uppercase tracking-widest hover:opacity-50 transition-opacity text-right">Interactive<br/>Explore [↗]</a>
+              <Link href="/" className="pointer-events-auto font-mono text-[10px] uppercase tracking-widest hover:opacity-50 transition-opacity">Aditya.<br/>Architect</Link>
+              <Link href="/explore" className="pointer-events-auto font-mono text-[10px] uppercase tracking-widest hover:opacity-50 transition-opacity text-right">Interactive<br/>Explore [↗]</Link>
             </div>
             <div className="flex justify-between items-end w-full">
-              <a href="/journey" className="pointer-events-auto font-mono text-[10px] uppercase tracking-widest hover:opacity-50 transition-opacity">Timeline /<br/>Journey</a>
+              <Link href="/journey" className="pointer-events-auto font-mono text-[10px] uppercase tracking-widest hover:opacity-50 transition-opacity">Timeline /<br/>Journey</Link>
               <div className="pointer-events-auto font-mono text-[10px] uppercase tracking-widest text-right">2026<br/>Edition</div>
             </div>
           </div>
@@ -52,9 +53,9 @@ export default function RootLayout({
         </QueryProvider>
 
         <footer className="fixed bottom-4 right-6 sm:right-12 md:right-24 z-50">
-          <a href="/admin" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-amber-500 transition-colors bg-[#050505] px-2 py-1 border border-foreground/10">
+          <Link href="/admin" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-amber-500 transition-colors bg-[#050505] px-2 py-1 border border-foreground/10">
             [ ADMIN_CONSOLE ]
-          </a>
+          </Link>
         </footer>
       </body>
     </html>

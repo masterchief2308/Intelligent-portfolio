@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/usePortfolioStore';
 import { api } from '@/lib/api';
+import Link from 'next/link';
 import type { ChatResponse } from '@/types';
 
 interface Message {
@@ -117,13 +118,16 @@ export default function ChatWidget() {
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="mt-3 pt-2 border-t border-foreground/10 space-y-1">
                       {msg.sources.map((s, j) => (
-                        <a
+                        <Link
                           key={j}
                           href={`/projects/${s.project}`}
-                          className="block text-[10px] text-amber-500/70 hover:text-amber-500 uppercase tracking-widest transition-colors"
+                          className="flex items-center gap-2 p-2 rounded hover:bg-white/5 border border-white/5 transition-colors group"
                         >
-                          → {s.project} / {s.section}
-                        </a>
+                          <div className="w-1.5 h-1.5 rounded-full bg-amber-500/50 group-hover:bg-amber-400" />
+                          <span className="font-mono text-[10px] text-white/70 uppercase tracking-widest truncate group-hover:text-white">
+                            View Blueprint
+                          </span>
+                        </Link>
                       ))}
                     </div>
                   )}

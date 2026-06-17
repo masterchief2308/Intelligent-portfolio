@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useMemo } from 'react';
 import { usePortfolioStore } from '@/store/usePortfolioStore';
 import { useHydrateSession } from '@/hooks/useHydrateSession';
@@ -219,7 +220,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {filteredProjects.map((project: FeaturedProject, idx: number) => (
-                <a
+                <Link
                   href={`/projects/${project.id}`}
                   key={project.id}
                   className={`group relative flex flex-col justify-between border border-foreground/10 p-8 hover:bg-white/[0.04] bg-white/[0.01] backdrop-blur-sm transition-all duration-300 cursor-crosshair ${idx === 0 ? 'lg:col-span-2' : ''}`}
@@ -252,7 +253,7 @@ export default function Home() {
                       </span>
                     </div>
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
           </div>
