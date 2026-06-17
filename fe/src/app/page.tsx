@@ -17,14 +17,41 @@ export default function Home() {
   const [role, setRole] = useState("hiring");
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+
+  const loadingMessages = useMemo(() => [
+    "INITIALIZING: Booting analytical framework...",
+    "DISCOVERY: Locating target domain vectors...",
+    "EXTRACTION: Analyzing public technical infrastructure...",
+    "RETRIEVAL: Semantically matching portfolio evidence...",
+    "SYNTHESIS: Compiling highly personalized case studies...",
+    "FINALIZING: Packaging dynamic website components..."
+  ], []);
+
+  // Cycle through loading steps while generating
+  React.useEffect(() => {
+    if (!loading) {
+      setLoadingStep(0);
+      return;
+    }
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      currentStep++;
+      if (currentStep < loadingMessages.length) {
+        setLoadingStep(currentStep);
+      }
+    }, 4500); // Progress every 4.5 seconds
+    return () => clearInterval(interval);
+  }, [loading, loadingMessages]);
 
   async function handlePersonalization(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
 
     setLoading(true);
+    setLoadingStep(0);
     setError(null);
     try {
       const response = await fetch("/api/personalize", {
@@ -199,9 +226,25 @@ export default function Home() {
         <section className="relative border-t border-foreground/10 pt-16">
           {loading && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-start pt-32">
-              <div className="bg-background text-foreground px-6 py-4 font-mono text-sm uppercase tracking-widest border border-amber-500/50 flex items-center gap-4 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-amber-500">Retrieving system data...</span>
+              <div className="bg-background text-foreground px-6 py-6 font-mono text-sm uppercase tracking-widest border border-amber-500/50 flex flex-col gap-6 shadow-[0_0_20px_rgba(245,158,11,0.2)] max-w-lg w-full">
+                <div className="flex items-center gap-4 border-b border-foreground/10 pb-4">
+                  <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-amber-500 font-bold">PIPELINE ACTIVE</span>
+                </div>
+                <div className="flex flex-col gap-3 min-h-[160px]">
+                  {loadingMessages.map((msg, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`text-xs transition-all duration-500 ${
+                        idx < loadingStep ? "text-amber-500/40" : 
+                        idx === loadingStep ? "text-amber-500 animate-pulse font-bold" : 
+                        "text-foreground/20"
+                      }`}
+                    >
+                      [{String(idx + 1).padStart(2, '0')}] {msg}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
