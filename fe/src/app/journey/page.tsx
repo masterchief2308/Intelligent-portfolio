@@ -37,15 +37,28 @@ export default function JourneyPage() {
   const education = portfolio?.education || [];
 
   const timeline = [
-    ...(experience?.map(exp => ({ ...exp, type: 'experience' as const })) || []),
-    ...(education?.map(edu => ({
-      company: edu.institution,
-      role: edu.degree,
-      startDate: edu.startDate,
-      endDate: edu.endDate,
-      highlights: [edu.cgpa],
-      type: 'education' as const
-    })) || [])
+    ...(experience?.map(exp => {
+      const insight = personalization?.website_config?.journey_highlights?.find(
+        (h: any) => h.milestone.toLowerCase().includes(exp.company.toLowerCase()) || 
+                    exp.company.toLowerCase().includes(h.milestone.toLowerCase())
+      );
+      return { ...exp, type: 'experience' as const, relevance: insight?.relevance };
+    }) || []),
+    ...(education?.map(edu => {
+      const insight = personalization?.website_config?.journey_highlights?.find(
+        (h: any) => h.milestone.toLowerCase().includes(edu.institution.toLowerCase()) || 
+                    edu.institution.toLowerCase().includes(h.milestone.toLowerCase())
+      );
+      return {
+        company: edu.institution,
+        role: edu.degree,
+        startDate: edu.startDate,
+        endDate: edu.endDate,
+        highlights: [edu.cgpa],
+        type: 'education' as const,
+        relevance: insight?.relevance
+      };
+    }) || [])
   ];
 
   const handleDownload = () => {
@@ -97,6 +110,13 @@ export default function JourneyPage() {
               </div>
 
               <div className="md:ml-[168px] border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-6 hover:bg-white/[0.04] transition-colors">
+                {item.relevance && (
+                  <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-sm">
+                    <p className="text-amber-500 font-mono text-sm tracking-wide leading-relaxed">
+                      <span className="font-bold uppercase">Why this matters to you:</span> {item.relevance}
+                    </p>
+                  </div>
+                )}
                 <ul className="space-y-4">
                   {item.highlights?.map((highlight, hIdx) => (
                     <li key={hIdx} className="flex gap-4 items-start">

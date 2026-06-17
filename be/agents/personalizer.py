@@ -30,18 +30,18 @@ def _load_project_ids() -> list[str]:
 # ── Structured Output Models ─────────────────────────────────────
 
 class HeroConfig(BaseModel):
-    intro: str = Field(description="A highly detailed 3-4 sentence personalized introduction paragraph explaining why my specific background is perfectly aligned with the visitor's needs.")
+    intro: str = Field(description="A very short, warm greeting. 1 line max, 5-6 words max. (e.g. 'Thrilled to meet you!')")
     subheading: str = Field(description="A 2-sentence subheading highlighting the core value proposition for this visitor's company/role.")
     cta_text: str = Field(description="Call to action text")
 
 
 class ProjectConfig(BaseModel):
     id: str = Field(description="Project slug ID")
-    title: str = Field(description="Project name")
+    title: str = Field(description="The EXACT original project title. Do NOT change or hallucinate this.")
     highlight: str = Field(description="A short 1-sentence highlight.")
-    metric: str = Field(default="99.9%", description="CRITICAL: MUST be a COMPLETELY NEW, personalized core metric (e.g. '10X FASTER', '22% COST REDUCTION'). DO NOT copy the original static metric. Invent a plausible metric tailored to their role. MUST BE 1-3 words max.")
+    metric: str = Field(default="99.9%", description="CRITICAL: DO NOT INVENT NUMBERS. You must pull a REAL core metric from the original static project. Select the specific metric that best aligns with the company's scraped needs (e.g., if they value reliability, pick the uptime metric from the project). MUST BE 1-3 words max.")
     metrics: list[str] = Field(default_factory=list, description="Key metrics")
-    why_relevant: str = Field(description="CRITICAL: MUST be a completely original, thick 3-4 sentence paragraph explaining the strategic value for the visitor. Do NOT copy the existing project description or ROI. Generate new, highly tailored insights specifically connecting the tech to their role.")
+    why_relevant: str = Field(description="CRITICAL: First, briefly explain what our project is. Then, directly connect its technical aspects to the specific needs of the visitor's company based on the scraped data. Explain exactly how this project proves we can solve their challenges.")
 
 
 class SkillPriorityConfig(BaseModel):
@@ -51,8 +51,8 @@ class SkillPriorityConfig(BaseModel):
 
 
 class JourneyHighlightConfig(BaseModel):
-    milestone: str = Field(description="Achievement")
-    relevance: str = Field(description="Why it matters to visitor")
+    milestone: str = Field(description="The exact name of the company or institution from my journey (e.g. 'Valiance Solutions')")
+    relevance: str = Field(description="A 1-2 sentence explanation of why this specific experience is relevant to the visitor's company")
 
 
 class ChatContextConfig(BaseModel):
