@@ -149,3 +149,11 @@ async def clear_cache(_: str = Depends(verify_token)):
     firestore = get_firestore()
     count = await firestore.clear_personalizations()
     return {"cleared": count, "message": f"Cleared {count} cached personalizations"}
+
+
+@router.post("/api/admin/db/clear")
+async def clear_db(_: str = Depends(verify_token)):
+    """Clear EVERYTHING in the database."""
+    firestore = get_firestore()
+    count = await firestore.clear_all()
+    return {"cleared": count, "message": f"Cleared {count} total documents across all collections"}

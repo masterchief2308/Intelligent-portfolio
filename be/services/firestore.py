@@ -106,6 +106,23 @@ class FirestoreService:
         self._mem["dynamic_portfolio"] = {}
         return count
 
+    async def clear_all(self) -> int:
+        """Clear EVERYTHING in the database (personalizations, chats, analytics)."""
+        count = await self.clear_personalizations()
+        if self._db:
+            for coll_name in ["chat_sessions", "visits", "admin_config"]:
+                docs = self._db.collection(coll_name).stream()
+                for doc in docs:
+                    doc.reference.delete()
+                    count += 1
+        else:
+            count += len(self._mem.get("chat_sessions", {}))
+            count += len(self._mem.get("visits", []))
+            self._mem["chat_sessions"] = {}
+            self._mem["visits"] = []
+            self._mem["admin_config"] = {}
+        return count
+
     # ── Chat Sessions (5-day TTL) ────────────────────────────────
 
     async def save_chat_message(
