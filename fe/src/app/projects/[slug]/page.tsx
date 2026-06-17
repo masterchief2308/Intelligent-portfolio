@@ -96,6 +96,9 @@ export default function ProjectDetail() {
   const { layoutedNodes, layoutedEdges } = useMemo(() => {
     if (!baseNodes.length) return { layoutedNodes: [], layoutedEdges: [] };
     
+    const nodeIds = new Set(baseNodes.map((n: any) => n.id));
+    const validEdges = baseEdges.filter((e: any) => nodeIds.has(e.source) && nodeIds.has(e.target));
+
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
     dagreGraph.setGraph({ rankdir: 'LR', ranksep: 150, nodesep: 100 });
@@ -109,30 +112,30 @@ export default function ProjectDetail() {
       }
     });
 
-    baseEdges.forEach((edge: any) => {
+    validEdges.forEach((edge: any) => {
       dagreGraph.setEdge(edge.source, edge.target);
     });
 
-    dagre.layout(dagreGraph);
+    try {
+      dagre.layout(dagreGraph);
 
-    const layoutedNodes = baseNodes.map((node: any) => {
-      const nodeWithPosition = dagreGraph.node(node.id);
-      
-      // If it's a child node, we need to adjust its position relative to parent?
-      // Actually React Flow handles relative positioning for child nodes if parentId is set
-      // and position is relative to parent. Dagre might struggle with nested groups out of the box,
-      // but setting explicit positions helps.
-      
-      return {
-        ...node,
-        position: {
-          x: nodeWithPosition.x - (node.type === 'group' ? 250 : 90),
-          y: nodeWithPosition.y - (node.type === 'group' ? 200 : 25),
-        },
-      };
-    });
+      const layoutedNodes = baseNodes.map((node: any) => {
+        const nodeWithPosition = dagreGraph.node(node.id);
+        
+        return {
+          ...node,
+          position: {
+            x: nodeWithPosition?.x ? nodeWithPosition.x - (node.type === 'group' ? 250 : 90) : 0,
+            y: nodeWithPosition?.y ? nodeWithPosition.y - (node.type === 'group' ? 200 : 25) : 0,
+          },
+        };
+      });
 
-    return { layoutedNodes, layoutedEdges: baseEdges };
+      return { layoutedNodes, layoutedEdges: validEdges };
+    } catch (err) {
+      console.error("Dagre layout failed:", err);
+      return { layoutedNodes: baseNodes, layoutedEdges: validEdges };
+    }
   }, [baseNodes, baseEdges]);
 
   const displayNodes = layoutedNodes.map(node => {
