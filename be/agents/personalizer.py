@@ -96,7 +96,7 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
             f"Industry: {company_data.get('industry', 'Unknown')}."
         )
 
-    llm = get_flash_llm()
+    llm = get_flash_llm(temperature=0.7)
     structured_llm = llm.with_structured_output(WebsiteConfigOutput)
 
     # Dynamically load available project IDs

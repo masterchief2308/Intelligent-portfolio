@@ -43,7 +43,7 @@ async def company_researcher(state: PersonalizationState) -> PersonalizationStat
         return state
 
     config = get_settings().scraping_config
-    llm = get_flash_llm()
+    llm = get_flash_llm(temperature=0.0)
 
     # Step 1: Discover available links
     available_links = []

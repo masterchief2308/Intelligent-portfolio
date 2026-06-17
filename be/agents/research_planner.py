@@ -34,7 +34,7 @@ async def research_planner(state: PersonalizationState) -> PersonalizationState:
     role = state.get("role", "")
     company = state.get("company", "")
 
-    llm = get_flash_llm()
+    llm = get_flash_llm(temperature=0.0)
     structured_llm = llm.with_structured_output(ResearchPlan)
 
     messages = [

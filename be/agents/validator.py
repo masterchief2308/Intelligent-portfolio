@@ -44,7 +44,7 @@ async def validator(state: PersonalizationState) -> PersonalizationState:
     company_data = state.get("company_data", {})
     scraped_pages = state.get("scraped_pages", [])
 
-    llm = get_flash_llm()
+    llm = get_flash_llm(temperature=0.0)
     structured_llm = llm.with_structured_output(ValidationResult)
 
     messages = [
