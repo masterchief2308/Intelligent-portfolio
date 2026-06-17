@@ -5,32 +5,41 @@ Gemini LLM setup via LangChain.
 """
 
 import logging
-from functools import lru_cache
+import itertools
 from langchain_google_genai import ChatGoogleGenerativeAI
 from config import get_settings
 
 logger = logging.getLogger(__name__)
 
+# Round-robin generator for API keys to double throughput
+_key_cycle = None
 
-@lru_cache
+def _get_next_api_key() -> str:
+    global _key_cycle
+    if _key_cycle is None:
+        settings = get_settings()
+        keys = [settings.GEMINI_API_KEY]
+        if settings.GEMINI_API_KEY_FALLBACK:
+            keys.append(settings.GEMINI_API_KEY_FALLBACK)
+        _key_cycle = itertools.cycle(keys)
+    return next(_key_cycle)
+
+
 def get_flash_llm(temperature: float = 0.7) -> ChatGoogleGenerativeAI:
     """Gemini 2.5 Flash — fast + cheap. Used for planning, parsing, validation, chat."""
-    settings = get_settings()
     return ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
-        api_key=settings.GEMINI_API_KEY,
+        api_key=_get_next_api_key(),
         temperature=temperature,
         max_retries=5,
     )
 
 
-@lru_cache
 def get_pro_llm(temperature: float = 0.7) -> ChatGoogleGenerativeAI:
     """Gemini 2.5 Pro — higher quality. Used for personalization generation only."""
-    settings = get_settings()
     return ChatGoogleGenerativeAI(
         model="gemini-2.5-pro",
-        api_key=settings.GEMINI_API_KEY,
+        api_key=_get_next_api_key(),
         temperature=temperature,
         max_retries=5,
     )

@@ -5,6 +5,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # Gemini
     GEMINI_API_KEY: str = ""
+    GEMINI_API_KEY_FALLBACK: str = ""
 
     # Firestore
     FIRESTORE_PROJECT_ID: str = ""
