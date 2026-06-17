@@ -13,8 +13,6 @@ export function usePortfolioData() {
         console.warn('Backend unavailable, falling back to static data');
         return fallbackResumeData;
       }
-    },
-    staleTime: 60_000,
-    initialData: fallbackResumeData,
+    }
   });
 }
