@@ -38,17 +38,21 @@ export default function JourneyPage() {
 
   const timeline = [
     ...(experience?.map(exp => {
-      const insight = personalization?.website_config?.journey_highlights?.find(
-        (h: any) => h.milestone.toLowerCase().includes(exp.company.toLowerCase()) || 
-                    exp.company.toLowerCase().includes(h.milestone.toLowerCase())
-      );
-      return { ...exp, type: 'experience' as const, relevance: insight?.relevance };
+      const insight = personalization?.website_config?.journey_highlights?.find((h: any) => {
+        const ms = typeof h === 'string' ? h : h?.milestone;
+        if (!ms) return false;
+        return ms.toLowerCase().includes(exp.company.toLowerCase()) || 
+               exp.company.toLowerCase().includes(ms.toLowerCase());
+      });
+      return { ...exp, type: 'experience' as const, relevance: typeof insight === 'string' ? insight : insight?.relevance };
     }) || []),
     ...(education?.map(edu => {
-      const insight = personalization?.website_config?.journey_highlights?.find(
-        (h: any) => h.milestone.toLowerCase().includes(edu.institution.toLowerCase()) || 
-                    edu.institution.toLowerCase().includes(h.milestone.toLowerCase())
-      );
+      const insight = personalization?.website_config?.journey_highlights?.find((h: any) => {
+        const ms = typeof h === 'string' ? h : h?.milestone;
+        if (!ms) return false;
+        return ms.toLowerCase().includes(edu.institution.toLowerCase()) || 
+               edu.institution.toLowerCase().includes(ms.toLowerCase());
+      });
       return {
         company: edu.institution,
         role: edu.degree,
@@ -56,7 +60,7 @@ export default function JourneyPage() {
         endDate: edu.endDate,
         highlights: [edu.cgpa],
         type: 'education' as const,
-        relevance: insight?.relevance
+        relevance: typeof insight === 'string' ? insight : insight?.relevance
       };
     }) || [])
   ];
