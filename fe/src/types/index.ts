@@ -110,11 +110,22 @@ export interface PersonalizationRequest {
   company?: string;
 }
 
+export interface SkillPriority {
+  skill: string;
+  priority: number;
+  proof: string;
+}
+
+export interface JourneyHighlight {
+  milestone: string;
+  relevance: string;
+}
+
 export interface WebsiteConfig {
   hero: any;
   featured_projects: FeaturedProject[];
-  skills_priority: string[];
-  journey_highlights: string[];
+  skills_priority: SkillPriority[];
+  journey_highlights: JourneyHighlight[];
   chat_context: any;
   suggested_queries: string[];
 }
