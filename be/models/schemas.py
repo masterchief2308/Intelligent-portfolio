@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -156,3 +157,41 @@ class AdminConfigUpdate(BaseModel):
     scraping_timeout_ms: Optional[int] = None
     fallback_enabled: Optional[bool] = None
     rag_prompts: Optional[list[RagPrompt]] = None
+
+
+# ── Dynamic Generation ───────────────────────────────────────────
+
+class DynamicProjectConfig(BaseModel):
+    id: str
+    title: str
+    client: str
+    date: str
+    cloud: str
+    metric: str
+    context: str = Field(description="The business context or problem statement, rewritten to emphasize aspects relevant to the visitor's industry or role.")
+    howItWorks: str = Field(description="The technical implementation details, customized to highlight tools/architecture the visitor cares about.")
+    roi: list[str] = Field(description="A list of 3-4 bullet points detailing ROI, tailored to what the visitor values (e.g. cost savings for business, latency for engineers).")
+    techStack: list[str] = Field(description="The core technologies used in the project.")
+
+
+class ArchitectureNode(BaseModel):
+    id: str = Field(description="Unique lowercase ID for the node")
+    type: str = Field(description="Must be 'custom' for regular nodes or 'group' for a bounding box container")
+    label: str = Field(description="Display text for the node")
+    badge: Optional[str] = Field(default=None, description="Short tag (e.g. 'RUN', 'DB', 'GCP')")
+    isExternal: Optional[bool] = Field(default=False, description="True if it represents a user/external actor")
+    parentId: Optional[str] = Field(default=None, description="ID of the group node this node belongs inside")
+
+
+class ArchitectureEdge(BaseModel):
+    source: str = Field(description="ID of the source node")
+    target: str = Field(description="ID of the target node")
+    animated: Optional[bool] = Field(default=True, description="Whether the edge should animate")
+    label: Optional[str] = Field(default=None, description="Text label to display on the edge")
+    dashed: Optional[bool] = Field(default=False, description="Whether the edge should be dashed (typically for DB/Storage)")
+
+
+class DynamicArchitectureConfig(BaseModel):
+    slug: str
+    nodes: list[ArchitectureNode]
+    edges: list[ArchitectureEdge]

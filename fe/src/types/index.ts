@@ -88,6 +88,7 @@ export interface ArchitectureData {
 
 export interface VisitorProfile {
   name?: string;
+  email?: string;
   role?: string;
   current_company?: string;
   years_experience?: number;

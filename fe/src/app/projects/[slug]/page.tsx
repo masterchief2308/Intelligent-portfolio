@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useHydrateSession } from '@/hooks/useHydrateSession';
-import { usePortfolioData } from '@/hooks/usePortfolioData';
+import { useProject } from '@/hooks/useProject';
 import { useArchitecture } from '@/hooks/useArchitecture';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactFlow, Background, Controls, Handle, Position } from '@xyflow/react';
@@ -43,15 +43,21 @@ export default function ProjectDetail() {
   const router = useRouter();
   const slug = params.slug as string;
   const { mounted, personalization } = useHydrateSession();
-  const { data: portfolio, isLoading: portfolioLoading } = usePortfolioData();
-  const { data: archData, isLoading: archLoading } = useArchitecture(slug);
+  const visitorEmail = personalization?.visitor_profile?.email;
+  
+  const { data: project, isLoading: projectLoading } = useProject(slug, visitorEmail);
+  const { data: archData, isLoading: archLoading } = useArchitecture(slug, visitorEmail);
+  
   const [viewMode, setViewMode] = useState<'business' | 'technical'>('business');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  if (!mounted || portfolioLoading) {
+  if (!mounted || projectLoading) {
     return (
       <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
-        <p className="text-muted-foreground uppercase tracking-widest">CONNECTING TO SYSTEM ARCHIVES...</p>
+        <p className="text-muted-foreground uppercase tracking-widest text-center">
+          <span className="block mb-4">CONNECTING TO SYSTEM ARCHIVES...</span>
+          <span className="text-amber-500 text-xs animate-pulse opacity-70">GENERATING PERSONALIZED CASE STUDY</span>
+        </p>
       </div>
     );
   }
@@ -63,8 +69,6 @@ export default function ProjectDetail() {
       </div>
     );
   }
-
-  const project = portfolio?.projects.find(p => p.id === slug);
 
   if (!project) {
     return (
@@ -217,7 +221,7 @@ export default function ProjectDetail() {
                   transition={{ duration: 0.3 }}
                 >
                   <ul className="space-y-6">
-                    {project.roi.map((item, i) => (
+                    {project.roi?.map((item: string, i: number) => (
                       <li key={i} className="flex gap-4 items-start">
                         <span className="font-mono text-amber-500 mt-1">→</span>
                         <p className="text-lg md:text-xl text-foreground font-light leading-relaxed">{item}</p>
@@ -234,7 +238,7 @@ export default function ProjectDetail() {
                   transition={{ duration: 0.3 }}
                 >
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {project.techStack.map((tech, i) => (
+                    {project.techStack?.map((tech: string, i: number) => (
                       <div key={i} className="border border-foreground/20 p-4 bg-foreground/5 hover:bg-foreground/10 transition-colors">
                         <span className="font-mono text-xs uppercase tracking-widest text-foreground block mb-2 opacity-50">STACK_{i.toString().padStart(2, '0')}</span>
                         <span className="font-bold text-foreground">{tech}</span>

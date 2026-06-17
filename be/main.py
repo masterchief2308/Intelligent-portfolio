@@ -26,6 +26,7 @@ from routers.resume import router as resume_router
 from routers.analytics import router as analytics_router
 from routers.admin import router as admin_router
 from routers.resume_compare import router as resume_compare_router
+from routers.project import router as project_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -124,6 +125,7 @@ app.include_router(resume_router, tags=["Resume"])
 app.include_router(analytics_router, tags=["Analytics"])
 app.include_router(admin_router, tags=["Admin"])
 app.include_router(resume_compare_router, tags=["Resume Compare"])
+app.include_router(project_router, tags=["Project"])
 
 
 @app.get("/health", tags=["Health"])

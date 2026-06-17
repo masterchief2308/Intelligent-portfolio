@@ -9,6 +9,7 @@ import type {
   ChatResponse,
   AnalyticsVisit,
   AnalyticsDashboard,
+  Project,
 } from '@/types';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-702455616797.asia-south1.run.app';
@@ -30,14 +31,21 @@ export const api = {
   getPortfolio: () =>
     request<PortfolioData>('/api/portfolio'),
 
+  getProject: (slug: string, email?: string) => {
+    const url = email ? `/api/project/${slug}?email=${encodeURIComponent(email)}` : `/api/project/${slug}`;
+    return request<Project>(url);
+  },
+
   personalize: (data: PersonalizationRequest) =>
     request<PersonalizationData>('/api/personalize', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  getArchitecture: (slug: string) =>
-    request<ArchitectureData>(`/api/architecture/${slug}`),
+  getArchitecture: (slug: string, email?: string) => {
+    const url = email ? `/api/architecture/${slug}?email=${encodeURIComponent(email)}` : `/api/architecture/${slug}`;
+    return request<ArchitectureData>(url);
+  },
 
   adminAuth: (passphrase: string) =>
     request<AdminAuthResponse>('/api/admin/auth', {

@@ -233,6 +233,50 @@ class FirestoreService:
             self._mem["admin_config"]["current"] = config
 
 
+    # ── Dynamic Generation Cache ─────────────────────────────────
+
+    async def get_dynamic_project(self, email: str, slug: str) -> Optional[dict]:
+        if not email or not slug:
+            return None
+        key = email.lower().strip()
+        if self._db:
+            doc = self._db.collection("personalizations").document(key).collection("projects").document(slug).get()
+            return doc.to_dict() if doc.exists else None
+        
+        # In-memory fallback
+        return self._mem.setdefault("dynamic_projects", {}).get(f"{key}_{slug}")
+
+    async def save_dynamic_project(self, email: str, slug: str, data: dict) -> None:
+        if not email or not slug:
+            return
+        key = email.lower().strip()
+        data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        if self._db:
+            self._db.collection("personalizations").document(key).collection("projects").document(slug).set(data)
+        else:
+            self._mem.setdefault("dynamic_projects", {})[f"{key}_{slug}"] = data
+
+    async def get_dynamic_architecture(self, email: str, slug: str) -> Optional[dict]:
+        if not email or not slug:
+            return None
+        key = email.lower().strip()
+        if self._db:
+            doc = self._db.collection("personalizations").document(key).collection("architectures").document(slug).get()
+            return doc.to_dict() if doc.exists else None
+        
+        # In-memory fallback
+        return self._mem.setdefault("dynamic_architectures", {}).get(f"{key}_{slug}")
+
+    async def save_dynamic_architecture(self, email: str, slug: str, data: dict) -> None:
+        if not email or not slug:
+            return
+        key = email.lower().strip()
+        data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        if self._db:
+            self._db.collection("personalizations").document(key).collection("architectures").document(slug).set(data)
+        else:
+            self._mem.setdefault("dynamic_architectures", {})[f"{key}_{slug}"] = data
+
 # Singleton
 _instance: Optional[FirestoreService] = None
 

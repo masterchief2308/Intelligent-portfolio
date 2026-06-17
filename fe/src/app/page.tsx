@@ -31,6 +31,10 @@ export default function Home() {
         body: JSON.stringify({ email, role, company })
       });
       const data = await response.json();
+      
+      if (data.visitor_profile) {
+        data.visitor_profile.email = email;
+      }
 
       localStorage.setItem('user_profile_complete', JSON.stringify({
         timestamp: Date.now(),
