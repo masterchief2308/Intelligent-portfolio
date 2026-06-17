@@ -39,7 +39,7 @@ class ProjectConfig(BaseModel):
     id: str = Field(description="Project slug ID")
     title: str = Field(description="The EXACT original project title. Do NOT change or hallucinate this.")
     highlight: str = Field(description="A short 1-sentence highlight.")
-    metric: str = Field(description="CRITICAL: You MUST use the EXACT `metric` string from the original project. DO NOT INVENT NUMBERS. DO NOT output '999'.")
+    metric: str = Field(description="CRITICAL: Select a metric from the original project's ROI/highlights that best aligns with the visitor's needs. Format as 1-3 words in ALL CAPS (e.g. '69% LESS LATENCY', '10X FASTER', '95% RELIABILITY'). DO NOT invent numbers. DO NOT output '999'.")
     metrics: list[str] = Field(default_factory=list, description="Key metrics")
     why_relevant: str = Field(description="CRITICAL: First, briefly explain what our project is. Then, directly connect its technical aspects to the specific needs of the visitor's company based on the scraped data. Explain exactly how this project proves we can solve their challenges.")
 
