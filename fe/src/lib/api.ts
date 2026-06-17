@@ -11,7 +11,7 @@ import type {
   AnalyticsDashboard,
 } from '@/types';
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || '';
+const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-702455616797.asia-south1.run.app';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
