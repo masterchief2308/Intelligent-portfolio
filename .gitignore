@@ -14,6 +14,7 @@ fe/node_modules
 # testing
 /coverage
 /docs
+/embedding-data
 
 # next.js
 .next/
