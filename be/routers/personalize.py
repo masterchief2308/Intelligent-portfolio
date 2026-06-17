@@ -36,11 +36,11 @@ async def personalize(request: Request, personalize_request: PersonalizeRequest)
         )
 
     # Cache miss — run pipeline
-    logger.info("Cache miss for %s, running pipeline", request.email)
+    logger.info("Cache miss for %s, running pipeline", personalize_request.email)
     state = await run_personalization(
-        email=request.email,
-        role=request.role,
-        company=request.company or "",
+        email=personalize_request.email,
+        role=personalize_request.role,
+        company=personalize_request.company or "",
     )
 
     # Build response
@@ -51,7 +51,7 @@ async def personalize(request: Request, personalize_request: PersonalizeRequest)
     )
 
     # Cache result
-    await firestore.save_personalization(request.email, {
+    await firestore.save_personalization(personalize_request.email, {
         "personalization_id": response.personalization_id,
         "visitor_profile": response.visitor_profile.model_dump() if hasattr(response.visitor_profile, 'model_dump') else response.visitor_profile,
         "website_config": response.website_config.model_dump() if hasattr(response.website_config, 'model_dump') else response.website_config,
