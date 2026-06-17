@@ -17,6 +17,7 @@ export default function Home() {
   const [role, setRole] = useState("hiring");
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   async function handlePersonalization(e: React.FormEvent) {
@@ -24,6 +25,7 @@ export default function Home() {
     if (!email) return;
 
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/personalize", {
         method: "POST",
@@ -31,6 +33,10 @@ export default function Home() {
         body: JSON.stringify({ email, role, company })
       });
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.detail || data.error || `HTTP Error ${response.status}`);
+      }
       
       if (data.visitor_profile) {
         data.visitor_profile.email = email;
@@ -50,8 +56,9 @@ export default function Home() {
         referrer: document.referrer,
         user_agent: navigator.userAgent,
       });
-    } catch (error) {
-      console.error("Personalization failed:", error);
+    } catch (err: any) {
+      console.error("Personalization failed:", err);
+      setError(err.message || "Unknown error occurred");
     } finally {
       setLoading(false);
     }
@@ -159,6 +166,12 @@ export default function Home() {
                   >
                     {loading ? "COMPILING PROFILE..." : "EXECUTE_ →"}
                   </button>
+                  {error && (
+                    <div className="mt-4 p-4 border border-red-500 bg-red-500/10 text-red-500 font-mono text-xs uppercase tracking-widest">
+                      [BACKEND CAUGHT IN ERROR]<br/>
+                      {error}
+                    </div>
+                  )}
                 </form>
               </div>
             </motion.div>

@@ -133,8 +133,7 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
         logger.info("Personalization generated for %s", visitor_profile.get("email", "unknown"))
     except Exception as e:
         logger.error("Personalizer failed: %s", e)
-        state["website_config"] = _fallback_config(visitor_profile)
-        state.setdefault("errors", []).append(f"personalizer: {e}")
+        raise e
 
     return state
 

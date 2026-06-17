@@ -107,4 +107,4 @@ async def get_architecture(slug: str, email: str | None = Query(None)):
 
     except Exception as e:
         logger.error("Failed to generate dynamic architecture %s: %s", slug, e)
-        return static_arch
+        raise HTTPException(status_code=500, detail=f"Failed to generate dynamic architecture {slug}: {str(e)}")

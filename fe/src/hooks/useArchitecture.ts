@@ -114,9 +114,12 @@ export function useArchitecture(slug: string, email?: string) {
       try {
         const data = await api.getArchitecture(slug, email);
         return transformToReactFlow(data);
-      } catch (e) {
-        console.warn(`Backend unavailable for architecture ${slug}, falling back to static data`);
-        return fallback ?? undefined;
+      } catch (e: any) {
+        if (e.message?.includes('Failed to fetch') || !email) {
+          console.warn(`Backend unavailable for architecture ${slug}, falling back to static data`);
+          return fallback ?? undefined;
+        }
+        throw e;
       }
     },
     enabled: !!slug,

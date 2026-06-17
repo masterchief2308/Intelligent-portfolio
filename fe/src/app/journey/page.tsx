@@ -8,11 +8,22 @@ import { useState } from 'react';
 
 export default function JourneyPage() {
   const { mounted, personalization } = useHydrateSession();
-  const { data: portfolio } = usePortfolioData();
+  const { data: portfolio, isError, error } = usePortfolioData();
   const router = useRouter();
   const [downloading, setDownloading] = useState(false);
 
   if (!mounted) return null;
+  
+  if (isError) {
+    return (
+      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
+        <div className="p-6 border border-red-500 bg-red-500/10 text-red-500 max-w-2xl">
+          <p className="uppercase tracking-widest font-bold mb-4">[BACKEND CAUGHT IN ERROR]</p>
+          <p className="text-sm">{(error as Error)?.message || "Failed to load data"}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!personalization) {
     return (
@@ -37,23 +48,12 @@ export default function JourneyPage() {
     })) || [])
   ];
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     setDownloading(true);
-    try {
-      const url = api.getResumePdf();
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Download failed');
-      const blob = await res.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'Aditya_Katkar_Resume.pdf';
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch {
-      window.open('/resume.pdf', '_blank');
-    } finally {
-      setDownloading(false);
-    }
+    // The backend /api/resume/pdf sends Content-Disposition: attachment
+    // Navigating directly to it forces a download.
+    window.location.href = api.getResumePdf();
+    setTimeout(() => setDownloading(false), 2000);
   };
 
   return (

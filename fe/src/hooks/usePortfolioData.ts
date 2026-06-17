@@ -13,9 +13,12 @@ export function usePortfolioData() {
     queryFn: async () => {
       try {
         return await api.getPortfolio(email);
-      } catch (e) {
-        console.warn('Backend unavailable, falling back to static data');
-        return fallbackResumeData;
+      } catch (e: any) {
+        if (e.message?.includes('Failed to fetch') || !email) {
+          console.warn('Backend unavailable, falling back to static data');
+          return fallbackResumeData;
+        }
+        throw e;
       }
     }
   });

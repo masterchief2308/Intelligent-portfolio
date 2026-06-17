@@ -103,5 +103,4 @@ async def get_project(slug: str, email: str | None = Query(None)):
 
     except Exception as e:
         logger.error("Failed to generate dynamic project %s: %s", slug, e)
-        # 5. Fallback on failure
-        return static_project
+        raise HTTPException(status_code=500, detail=f"Failed to generate dynamic project {slug}: {str(e)}")

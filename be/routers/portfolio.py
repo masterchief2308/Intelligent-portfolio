@@ -1,5 +1,6 @@
 """GET /api/portfolio — Return static portfolio data."""
 
+from fastapi import HTTPException
 import json
 import logging
 from pathlib import Path
@@ -145,4 +146,4 @@ async def get_portfolio(email: str | None = Query(None)):
 
     except Exception as e:
         logger.error("Failed to generate dynamic portfolio for %s: %s", email, e)
-        return static_portfolio
+        raise HTTPException(status_code=500, detail=f"Failed to generate dynamic portfolio: {str(e)}")
