@@ -70,3 +70,46 @@ def get_flash_llm(temperature: float = 0.7) -> FallbackLLMWrapper:
 def get_pro_llm(temperature: float = 0.7) -> FallbackLLMWrapper:
     """Originally Gemini 2.5 Pro — but Google Free Tier sets limit to 0. Downgraded to Flash."""
     return _get_llm_with_fallbacks("gemini-2.5-flash", temperature)
+
+
+from langchain_core.prompts import ChatPromptTemplate
+
+def build_dynamic_chain_with_fallbacks(schema: Any, configs: list[dict], temperature: float = 0.7):
+    """
+    Builds a Runnable chain with fallbacks where each fallback has a DIFFERENT model and DIFFERENT prompt.
+    `configs` is a list of dictionaries:
+    [
+        {
+            "model_name": "gemini-2.5-flash",
+            "api_key_env": "GEMINI_API_KEY",
+            "messages": [("system", "..."), ("human", "...")] # ChatPromptTemplate tuples
+        },
+        ...
+    ]
+    """
+    settings = get_settings()
+    
+    chains = []
+    for cfg in configs:
+        key_val = getattr(settings, cfg["api_key_env"], None)
+        if not key_val:
+            continue
+            
+        llm = ChatGoogleGenerativeAI(
+            model=cfg["model_name"],
+            api_key=key_val,
+            temperature=temperature,
+            max_retries=1, # Fail fast to trigger fallback
+        )
+        
+        prompt = ChatPromptTemplate.from_messages(cfg["messages"])
+        chain = prompt | llm.with_structured_output(schema)
+        chains.append(chain)
+        
+    if not chains:
+        raise ValueError("No valid LLM configurations provided with available API keys.")
+        
+    primary_chain = chains[0]
+    if len(chains) > 1:
+        return primary_chain.with_fallbacks(chains[1:])
+    return primary_chain
