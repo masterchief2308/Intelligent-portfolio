@@ -120,6 +120,9 @@ async def add_security_headers(request: Request, call_next):
 app.include_router(portfolio_router, tags=["Portfolio"])
 app.include_router(personalize_router, tags=["Personalization"])
 app.include_router(chat_router, tags=["Chat"])
+
+
+
 app.include_router(architecture_router, tags=["Architecture"])
 app.include_router(resume_router, tags=["Resume"])
 app.include_router(analytics_router, tags=["Analytics"])
