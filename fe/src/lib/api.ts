@@ -12,7 +12,7 @@ import type {
   Project,
 } from '@/types';
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-702455616797.asia-south1.run.app';
+const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-7ubimlsttq-el.a.run.app';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const fullUrl = url.startsWith('http') ? url : `${BASE}${url}`;
