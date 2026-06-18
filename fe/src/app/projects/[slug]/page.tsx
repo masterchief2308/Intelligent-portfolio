@@ -52,44 +52,6 @@ export default function ProjectDetail() {
   const [viewMode, setViewMode] = useState<'business' | 'technical'>('business');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  if (!mounted || projectLoading) {
-    return (
-      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
-        <p className="text-muted-foreground uppercase tracking-widest text-center">
-          <span className="block mb-4">CONNECTING TO SYSTEM ARCHIVES...</span>
-          <span className="text-amber-500 text-xs animate-pulse opacity-70">GENERATING PERSONALIZED CASE STUDY</span>
-        </p>
-      </div>
-    );
-  }
-
-  if (isProjError || isArchError) {
-    return (
-      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
-        <div className="p-6 border border-red-500 bg-red-500/10 text-red-500 max-w-2xl z-50">
-          <p className="uppercase tracking-widest font-bold mb-4">[BACKEND CAUGHT IN ERROR]</p>
-          <p className="text-sm">{(projError as Error)?.message || (archError as Error)?.message || "Failed to load project data"}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!personalization) {
-    return (
-      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
-        <p className="text-muted-foreground uppercase tracking-widest">[ERR] Session unauthorized. Return to Index.</p>
-      </div>
-    );
-  }
-
-  if (!project) {
-    return (
-      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
-        <p className="text-muted-foreground uppercase tracking-widest">[ERR] Project unmapped in static DB. Return to Index.</p>
-      </div>
-    );
-  }
-
   const baseNodes = archData?.nodes || [];
   const baseEdges = archData?.edges || [];
 
@@ -137,6 +99,44 @@ export default function ProjectDetail() {
       return { layoutedNodes: baseNodes, layoutedEdges: validEdges };
     }
   }, [baseNodes, baseEdges]);
+
+  if (!mounted || projectLoading) {
+    return (
+      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
+        <p className="text-muted-foreground uppercase tracking-widest text-center">
+          <span className="block mb-4">CONNECTING TO SYSTEM ARCHIVES...</span>
+          <span className="text-amber-500 text-xs animate-pulse opacity-70">GENERATING PERSONALIZED CASE STUDY</span>
+        </p>
+      </div>
+    );
+  }
+
+  if (isProjError || isArchError) {
+    return (
+      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
+        <div className="p-6 border border-red-500 bg-red-500/10 text-red-500 max-w-2xl z-50">
+          <p className="uppercase tracking-widest font-bold mb-4">[BACKEND CAUGHT IN ERROR]</p>
+          <p className="text-sm">{(projError as Error)?.message || (archError as Error)?.message || "Failed to load project data"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!personalization) {
+    return (
+      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
+        <p className="text-muted-foreground uppercase tracking-widest">[ERR] Session unauthorized. Return to Index.</p>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
+        <p className="text-muted-foreground uppercase tracking-widest">[ERR] Project unmapped in static DB. Return to Index.</p>
+      </div>
+    );
+  }
 
   const displayNodes = layoutedNodes.map(node => {
     if (!selectedNodeId) return { ...node, style: { ...node.style, transition: 'opacity 0.3s' } };
