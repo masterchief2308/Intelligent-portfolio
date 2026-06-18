@@ -13,22 +13,22 @@ logger = logging.getLogger(__name__)
 
 
 class FallbackLLMWrapper:
-    """Wraps a primary LLM and a fallback.
+    """Wraps a primary LLM and a list of fallbacks.
     Automatically applies .with_fallbacks() to base invocations and structured output."""
-    def __init__(self, primary: ChatGoogleGenerativeAI, fallback: Optional[ChatGoogleGenerativeAI] = None):
+    def __init__(self, primary: ChatGoogleGenerativeAI, fallbacks: list[ChatGoogleGenerativeAI] = None):
         self.primary = primary
-        self.fallback = fallback
+        self.fallbacks = fallbacks or []
 
     def with_structured_output(self, schema: Any, **kwargs):
         primary_struct = self.primary.with_structured_output(schema, **kwargs)
-        if self.fallback:
-            fallback_struct = self.fallback.with_structured_output(schema, **kwargs)
-            return primary_struct.with_fallbacks([fallback_struct])
+        if self.fallbacks:
+            fallback_structs = [f.with_structured_output(schema, **kwargs) for f in self.fallbacks]
+            return primary_struct.with_fallbacks(fallback_structs)
         return primary_struct
 
     def __getattr__(self, name: str):
-        if self.fallback:
-            runnable = self.primary.with_fallbacks([self.fallback])
+        if self.fallbacks:
+            runnable = self.primary.with_fallbacks(self.fallbacks)
             return getattr(runnable, name)
         return getattr(self.primary, name)
 
@@ -42,17 +42,24 @@ def _get_llm_with_fallbacks(model_name: str, temperature: float = 0.7) -> Fallba
         temperature=temperature,
         max_retries=2, # Fail fast so we can bounce to the fallback key
     )
-    
-    fallback = None
+    fallbacks = []
     if settings.GEMINI_API_KEY_FALLBACK:
-        fallback = ChatGoogleGenerativeAI(
+        fallbacks.append(ChatGoogleGenerativeAI(
             model=model_name,
             api_key=settings.GEMINI_API_KEY_FALLBACK,
             temperature=temperature,
             max_retries=2,
-        )
+        ))
         
-    return FallbackLLMWrapper(primary, fallback)
+    if getattr(settings, "GEMINI_API_KEY_FALLBACK_2", ""):
+        fallbacks.append(ChatGoogleGenerativeAI(
+            model=model_name,
+            api_key=settings.GEMINI_API_KEY_FALLBACK_2,
+            temperature=temperature,
+            max_retries=2,
+        ))
+        
+    return FallbackLLMWrapper(primary, fallbacks)
 
 
 def get_flash_llm(temperature: float = 0.7) -> FallbackLLMWrapper:

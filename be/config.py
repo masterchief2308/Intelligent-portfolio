@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     # Gemini
     GEMINI_API_KEY: str = ""
     GEMINI_API_KEY_FALLBACK: str = ""
+    GEMINI_API_KEY_FALLBACK_2: str = ""
 
     # Firestore
     FIRESTORE_PROJECT_ID: str = ""
