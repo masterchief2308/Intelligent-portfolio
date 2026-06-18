@@ -103,7 +103,7 @@ async def chat(request: ChatRequest):
         response_text = response.content
     except Exception as e:
         logger.error("Chat LLM failed: %s", e)
-        response_text = "I'm having trouble connecting right now. Please try again."
+        response_text = "I'm having trouble connecting right now LLM Free Limit reached. Please try again."
 
     # Step 7: Save assistant response to history
     await firestore.save_chat_message(session_id, "assistant", response_text)
