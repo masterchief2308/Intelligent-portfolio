@@ -38,7 +38,7 @@ export default function ResumeComparePage() {
     formData.append('file', file);
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-702455616797.asia-south1.run.app';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-7ubimlsttq-el.a.run.app';
       const response = await fetch(`${backendUrl}/api/resume/compare`, {
         method: 'POST',
         body: formData,

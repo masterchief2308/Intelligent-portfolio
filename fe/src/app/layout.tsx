@@ -33,7 +33,7 @@ export default async function RootLayout({
   await queryClient.prefetchQuery({
     queryKey: ['portfolio'],
     queryFn: async () => {
-      const url = (process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-702455616797.asia-south1.run.app') + '/api/portfolio';
+      const url = (process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-7ubimlsttq-el.a.run.app') + '/api/portfolio';
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error('Failed to fetch portfolio');
       return res.json();
