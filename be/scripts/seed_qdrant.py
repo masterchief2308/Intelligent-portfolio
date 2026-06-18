@@ -61,7 +61,9 @@ async def seed():
     qdrant = get_qdrant(url=qdrant_url, api_key=qdrant_api_key)
     qdrant.ensure_collection()
 
-    points = []
+    documents = []
+    metadata = []
+    ids = []
     
     # 1. Process portfolio.json
     data_path = Path(__file__).parent.parent / "data" / "portfolio.json"
@@ -72,55 +74,31 @@ async def seed():
         # Basics
         basics = portfolio.get("basics", {})
         basics_text = f"Name: {basics.get('name')}\nRole: {basics.get('label')}\nSummary: {basics.get('summary')}"
-        points.append({
-            "id": str(uuid.uuid4()),
-            "vector": qdrant.embed(basics_text),
-            "payload": {
-                "text": basics_text,
-                "doc_type": "basics",
-                "doc_id": "profile",
-            }
-        })
+        documents.append(basics_text)
+        metadata.append({"doc_type": "basics", "doc_id": "profile"})
+        ids.append(str(uuid.uuid4()))
         
         # Skills
         skills = portfolio.get("skills", {})
         for category, skill_list in skills.items():
             skill_text = f"{category.replace('_', ' ').title()} Skills: {', '.join(skill_list)}"
-            points.append({
-                "id": str(uuid.uuid4()),
-                "vector": qdrant.embed(skill_text),
-                "payload": {
-                    "text": skill_text,
-                    "doc_type": "skills",
-                    "doc_id": category,
-                }
-            })
+            documents.append(skill_text)
+            metadata.append({"doc_type": "skills", "doc_id": category})
+            ids.append(str(uuid.uuid4()))
             
         # Experience
         for exp in portfolio.get("experience", []):
             exp_text = f"Role: {exp.get('role')} at {exp.get('company')} ({exp.get('startDate')} - {exp.get('endDate')})\nHighlights:\n" + "\n".join([f"- {h}" for h in exp.get('highlights', [])])
-            points.append({
-                "id": str(uuid.uuid4()),
-                "vector": qdrant.embed(exp_text),
-                "payload": {
-                    "text": exp_text,
-                    "doc_type": "experience",
-                    "doc_id": exp.get("company", "").lower().replace(" ", "_"),
-                }
-            })
+            documents.append(exp_text)
+            metadata.append({"doc_type": "experience", "doc_id": exp.get("company", "").lower().replace(" ", "_")})
+            ids.append(str(uuid.uuid4()))
             
         # Projects
         for proj in portfolio.get("projects", []):
             proj_text = f"Project: {proj.get('title')}\nContext: {proj.get('context')}\nHow it works: {proj.get('howItWorks')}\nROI:\n" + "\n".join([f"- {r}" for r in proj.get('roi', [])]) + f"\nTech Stack: {', '.join(proj.get('techStack', []))}"
-            points.append({
-                "id": str(uuid.uuid4()),
-                "vector": qdrant.embed(proj_text),
-                "payload": {
-                    "text": proj_text,
-                    "doc_type": "project",
-                    "doc_id": proj.get("id"),
-                }
-            })
+            documents.append(proj_text)
+            metadata.append({"doc_type": "project", "doc_id": proj.get("id")})
+            ids.append(str(uuid.uuid4()))
             
     # 2. Process Resume PDF
     resume_path = Path(__file__).parent.parent.parent / "Aditya_katkar_resume.pdf"
@@ -129,24 +107,14 @@ async def seed():
         logger.info("Processing Aditya_katkar_resume.pdf...")
         chunks = chunk_text(resume_text, chunk_size=200, overlap=50)
         for i, chunk in enumerate(chunks):
-            points.append({
-                "id": str(uuid.uuid4()),
-                "vector": qdrant.embed(chunk),
-                "payload": {
-                    "text": chunk,
-                    "doc_type": "resume",
-                    "doc_id": f"resume_chunk_{i}",
-                }
-            })
+            documents.append(chunk)
+            metadata.append({"doc_type": "resume", "doc_id": f"resume_chunk_{i}"})
+            ids.append(str(uuid.uuid4()))
             
-    # Upsert all points
-    if points:
-        logger.info(f"Upserting {len(points)} total points to Qdrant...")
-        # Convert UUID string to integer hash for Qdrant ID
-        for p in points:
-            # Qdrant accepts either UUID string or unsigned integer. The python client supports UUID strings natively in PointStruct
-            pass 
-        qdrant.upsert(points)
+    # Upsert all documents
+    if documents:
+        logger.info(f"Upserting {len(documents)} total documents to Qdrant...")
+        qdrant.upsert_documents(documents=documents, metadata=metadata, ids=ids)
         logger.info("Seeding complete! ✨")
     else:
         logger.warning("No data found to seed.")

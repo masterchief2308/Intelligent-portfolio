@@ -65,7 +65,9 @@ async def seed_data():
         length_function=len,
     )
 
-    all_points = []
+    all_documents = []
+    all_metadata = []
+    all_ids = []
     
     # Process all markdown and pdf files
     for file_path in embedding_data_dir.iterdir():
@@ -96,7 +98,6 @@ async def seed_data():
                 embed_text = f"[{context_str}]\n{chunk_text}" if context_str else chunk_text
                 
                 payload = {
-                    "text": chunk_text,
                     "doc_type": "markdown" if file_path.suffix == ".md" else "pdf",
                     "source_file": file_path.name,
                     **metadata
@@ -105,23 +106,24 @@ async def seed_data():
                 # Use deterministic UUIDs based on the exact text content so re-running overwrites safely
                 point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, embed_text))
                 
-                all_points.append({
-                    "id": point_id,
-                    "vector": qdrant.embed(embed_text),
-                    "payload": payload
-                })
+                all_documents.append(embed_text)
+                all_metadata.append(payload)
+                all_ids.append(point_id)
         except Exception as e:
             logger.error(f"Failed to process {file_path.name}: {e}")
 
     # Upsert all points
-    if all_points:
-        logger.info(f"Successfully chunked into {len(all_points)} heavily optimized semantic pieces.")
+    if all_documents:
+        logger.info(f"Successfully chunked into {len(all_documents)} heavily optimized semantic pieces.")
         # Batch upsert to avoid memory exhaustion (Qdrant cloud limits payload sizes)
         batch_size = 25
-        for i in range(0, len(all_points), batch_size):
-            batch = all_points[i:i + batch_size]
-            qdrant.upsert(batch)
-            logger.info(f"Upserted batch {i//batch_size + 1}/{(len(all_points) + batch_size - 1)//batch_size}")
+        for i in range(0, len(all_documents), batch_size):
+            qdrant.upsert_documents(
+                documents=all_documents[i:i + batch_size],
+                metadata=all_metadata[i:i + batch_size],
+                ids=all_ids[i:i + batch_size]
+            )
+            logger.info(f"Upserted batch {i//batch_size + 1}/{(len(all_documents) + batch_size - 1)//batch_size}")
             
         logger.info("Semantic Seeding complete! ✨")
     else:

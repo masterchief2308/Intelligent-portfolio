@@ -39,12 +39,17 @@ function getLayoutedElements(nodes: Node[], edges: Edge[], direction = 'TB') {
     const nodeWithPosition = dagreGraph.node(node.id);
     
     if (node.type === 'group') {
-      // Dagre calculates the bounding box for compound nodes
-      // Add padding so children aren't touching the borders
+      // Dagre calculates the bounding box for compound nodes.
+      // Add padding so children aren't touching the borders.
+      const width = nodeWithPosition.width + 40;
+      const height = nodeWithPosition.height + 60;
+      const x = nodeWithPosition.x - (nodeWithPosition.width / 2) - 20;
+      const y = nodeWithPosition.y - (nodeWithPosition.height / 2) - 40;
+      
       return { 
         ...node, 
-        position: { x: nodeWithPosition.x - (nodeWithPosition.width / 2) - 20, y: nodeWithPosition.y - (nodeWithPosition.height / 2) - 40 }, 
-        style: { width: nodeWithPosition.width + 40, height: nodeWithPosition.height + 60 } 
+        position: { x, y }, 
+        style: { width, height } 
       };
     }
 
@@ -57,6 +62,18 @@ function getLayoutedElements(nodes: Node[], edges: Edge[], direction = 'TB') {
         y: nodeWithPosition.y - 30,  // offset by half height
       },
     };
+  });
+
+  // React Flow requires nodes with a parentId to be positioned *relative* to their parent's top-left corner.
+  // Dagre outputs *absolute* global coordinates for all nodes. We must convert them.
+  layoutedNodes.forEach(node => {
+    if (node.parentId) {
+      const parentNode = layoutedNodes.find(n => n.id === node.parentId);
+      if (parentNode) {
+        node.position.x -= parentNode.position.x;
+        node.position.y -= parentNode.position.y;
+      }
+    }
   });
 
   return { nodes: layoutedNodes, edges };
