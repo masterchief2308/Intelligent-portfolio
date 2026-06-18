@@ -132,7 +132,8 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
         "1. Write clear, tailored 2-3 sentence paragraphs for the hero section and project 'why_relevant' fields. "
         "2. Ensure you connect the visitor's goals with the portfolio evidence directly. "
         "3. Include ALL available projects in the featured list. "
-        "4. Follow all structural schemas strictly. "
+        "4. MUST provide 3 'suggested_queries' that the visitor would likely ask the chat bot. "
+        "5. Follow all structural schemas strictly. "
         f"- Available project IDs: {project_ids_str}\n"
     ))
 
@@ -141,8 +142,9 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
         "Generate a concise, accurate website configuration. "
         "1. Write 1-2 sentence summaries for the hero section and 'why_relevant' fields. "
         "2. Focus strictly on matching the visitor's role with the core facts of the portfolio. "
-        "3. DO NOT hallucinate. Do not skip any projects. "
-        "4. Strictly follow the JSON schema format. "
+        "3. MUST provide 2-3 'suggested_queries' for the chat bot. "
+        "4. DO NOT hallucinate. Do not skip any projects. "
+        "5. Strictly follow the JSON schema format. "
         f"- Available project IDs: {project_ids_str}\n"
     ))
 
