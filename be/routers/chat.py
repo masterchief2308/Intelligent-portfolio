@@ -170,12 +170,10 @@ async def _run_chat_pipeline(request: ChatRequest, stream_tokens: bool = False) 
         chain = build_dynamic_chain_with_fallbacks(str, configs)
         if stream_tokens:
             async for chunk in chain.astream({}):
-                text = chunk if isinstance(chunk, str) else str(chunk)
-                if len(text) > len(response_text):
-                    delta = text[len(response_text):]
-                    response_text = text
-                    if delta:
-                        yield _sse({"type": "token", "content": delta})
+                delta = chunk if isinstance(chunk, str) else str(chunk)
+                response_text += delta
+                if delta:
+                    yield _sse({"type": "token", "content": delta})
         else:
             response_text = await chain.ainvoke({})
     except Exception as e:

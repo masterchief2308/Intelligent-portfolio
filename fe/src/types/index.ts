@@ -103,6 +103,7 @@ export interface VisitorProfile {
 export interface FeaturedProject {
   id: string;
   title: string;
+  highlight: string;
   why_relevant: string;
   metric?: string;
 }

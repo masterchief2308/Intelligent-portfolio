@@ -150,11 +150,12 @@ export default function Home() {
   };
 
   const filteredProjects = useMemo(() => {
-    let projects = personalization?.website_config?.featured_projects;
-    if (!projects) {
+    let projects: FeaturedProject[] = personalization?.website_config?.featured_projects || [];
+    if (projects.length === 0) {
       projects = portfolio?.projects?.map(p => ({
         id: p.id,
         title: p.title,
+        highlight: p.context || '',
         why_relevant: p.context || p.howItWorks?.substring(0, 100) + '...',
         metric: p.metric || '99.9%'
       })) || [];
@@ -306,9 +307,13 @@ export default function Home() {
                         <h3 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase mb-6">
                           {project.title}
                         </h3>
-                        <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest max-w-xl leading-relaxed">
-                          {project.why_relevant}
+                        <p className="font-mono text-sm text-foreground uppercase tracking-widest max-w-xl leading-relaxed mb-4">
+                          {project.highlight}
                         </p>
+                        <div className="font-mono text-[10px] text-amber-500/80 uppercase tracking-widest max-w-xl leading-relaxed border-l-2 border-amber-500/30 pl-4">
+                          <span className="text-muted-foreground block mb-1">STRATEGIC ALIGNMENT_</span>
+                          {project.why_relevant}
+                        </div>
                       </div>
 
                       <div className="flex items-end justify-between border-t border-foreground/10 pt-8 mt-auto">
