@@ -185,6 +185,21 @@ export interface ChatResponse {
   suggested_followups: string[];
 }
 
+export interface ResumeCompareMatch {
+  project_id: string;
+  project_title: string;
+  relevancy_score: number;
+  matching_skills: string[];
+  explanation: string;
+}
+
+export interface ResumeCompareResponse {
+  overall_score: number;
+  matches: ResumeCompareMatch[];
+  extracted_skills: string[];
+  summary: string;
+}
+
 export interface AnalyticsVisit {
   email: string;
   role: string;

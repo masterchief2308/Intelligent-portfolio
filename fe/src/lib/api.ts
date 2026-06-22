@@ -7,6 +7,7 @@ import type {
   AdminConfig,
   ChatRequest,
   ChatResponse,
+  ResumeCompareResponse,
   AnalyticsVisit,
   AnalyticsDashboard,
   Project,
@@ -84,6 +85,20 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  compareResume: async (file: File): Promise<ResumeCompareResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${BASE}/api/resume/compare`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(detail || `Comparison failed (${res.status})`);
+    }
+    return res.json();
+  },
 
   getResumePdf: () => `${BASE}/api/resume/pdf`,
 
