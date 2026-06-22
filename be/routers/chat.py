@@ -168,7 +168,7 @@ async def _run_chat_pipeline(request: ChatRequest, stream_tokens: bool = False) 
     yield _sse(_step("llm", "Generating answer with Gemini"))
     response_text = ""
     try:
-        chain = build_dynamic_chain_with_fallbacks(str, configs)
+        chain = build_dynamic_chain_with_fallbacks(str, configs, max_output_tokens=2048)
         if stream_tokens:
             async for chunk in chain.astream({}):
                 delta = chunk if isinstance(chunk, str) else str(chunk)

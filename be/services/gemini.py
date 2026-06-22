@@ -42,6 +42,7 @@ def _get_llm_with_fallbacks(
     temperature: float = 0.7,
     top_p: float | None = None,
     top_k: int | None = None,
+    max_output_tokens: int | None = None,
 ) -> FallbackLLMWrapper:
     settings = get_settings()
     
@@ -55,6 +56,8 @@ def _get_llm_with_fallbacks(
         kwargs["top_p"] = top_p
     if top_k is not None:
         kwargs["top_k"] = top_k
+    if max_output_tokens is not None:
+        kwargs["max_output_tokens"] = max_output_tokens
         
     primary = ChatGoogleGenerativeAI(**kwargs)
     fallbacks = []
@@ -74,24 +77,26 @@ def get_flash_llm(
     temperature: float = 0.7,
     top_p: float | None = None,
     top_k: int | None = None,
+    max_output_tokens: int | None = None,
 ) -> FallbackLLMWrapper:
     """Gemini 2.5 Flash — fast + cheap. Used for planning, parsing, validation, chat."""
-    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature, top_p, top_k)
+    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature, top_p, top_k, max_output_tokens)
 
 
 def get_pro_llm(
     temperature: float = 0.7,
     top_p: float | None = None,
     top_k: int | None = None,
+    max_output_tokens: int | None = None,
 ) -> FallbackLLMWrapper:
     """Originally Gemini 2.5 Pro — but Google Free Tier sets limit to 0. Downgraded to Flash."""
-    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature, top_p, top_k)
+    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature, top_p, top_k, max_output_tokens)
 
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-def build_dynamic_chain_with_fallbacks(schema: Any, configs: list[dict], temperature: float = 0.7):
+def build_dynamic_chain_with_fallbacks(schema: Any, configs: list[dict], temperature: float = 0.7, max_output_tokens: int | None = None):
     """
     Builds a Runnable chain with fallbacks where each fallback has a DIFFERENT model and DIFFERENT prompt.
     `configs` is a list of dictionaries:
@@ -112,12 +117,16 @@ def build_dynamic_chain_with_fallbacks(schema: Any, configs: list[dict], tempera
         if not key_val:
             continue
             
-        llm = ChatGoogleGenerativeAI(
-            model=cfg["model_name"],
-            api_key=key_val,
-            temperature=temperature,
-            max_retries=1, # Fail fast to trigger fallback
-        )
+        kwargs = {
+            "model": cfg["model_name"],
+            "api_key": key_val,
+            "temperature": temperature,
+            "max_retries": 1, # Fail fast to trigger fallback
+        }
+        if max_output_tokens is not None:
+            kwargs["max_output_tokens"] = max_output_tokens
+            
+        llm = ChatGoogleGenerativeAI(**kwargs)
         
         prompt = ChatPromptTemplate.from_messages(cfg["messages"])
         if schema is str:
