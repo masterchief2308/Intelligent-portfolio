@@ -110,11 +110,12 @@ export default function ChatWidget() {
     if (fileInputRef.current) fileInputRef.current.value = '';
 
     try {
+      const sessionId = personalization?.visitor_profile?.email || 'anonymous';
       const result = await api.compareResumeStream(file, (event) => {
         if (event.type === 'step') {
           setThinkingSteps((prev) => applyStepEvent(prev, event as Parameters<typeof applyStepEvent>[1]));
         }
-      });
+      }, sessionId);
 
       const matchProjects = result.matches?.map((m) => ({
         project_id: m.project_id,

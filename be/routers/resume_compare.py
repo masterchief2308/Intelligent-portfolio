@@ -5,7 +5,7 @@ import json
 import logging
 from typing import AsyncIterator
 
-from fastapi import APIRouter, UploadFile, File, Request, HTTPException
+from fastapi import APIRouter, UploadFile, File, Request, HTTPException, Form
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from slowapi import Limiter
@@ -73,7 +73,7 @@ async def _extract_text_from_txt(file: UploadFile) -> str:
     return content.decode("utf-8", errors="ignore").strip()
 
 
-async def _compare_pipeline(file: UploadFile) -> AsyncIterator[str]:
+async def _compare_pipeline(file: UploadFile, session_id: str | None = None) -> AsyncIterator[str]:
     yield _sse(_step("extract", "Extracting text from uploaded resume"))
 
     if file.content_type == "application/pdf" or (file.filename or "").endswith(".pdf"):
@@ -93,7 +93,8 @@ async def _compare_pipeline(file: UploadFile) -> AsyncIterator[str]:
     qdrant = get_qdrant()
     chunks = []
     try:
-        chunks = await qdrant.search(query=resume_text[:2000], use_case="resume_compare")
+        # Use first 500 chars (summary) to prevent overflowing token limits in the dense vectorizer
+        chunks = await qdrant.search(query=resume_text[:500], use_case="resume_compare")
     except Exception as e:
         logger.error("Qdrant search failed: %s", e)
     portfolio_context = format_chunks_for_llm(chunks, max_chars=350)
@@ -125,6 +126,14 @@ async def _compare_pipeline(file: UploadFile) -> AsyncIterator[str]:
             extracted_skills=result.extracted_skills,
             summary=result.summary,
         ).model_dump()
+        
+        if session_id:
+            from services.firestore import get_firestore
+            firestore = get_firestore()
+            await firestore.save_chat_message(session_id, "user", f"[Uploaded resume for comparison] {file.filename}")
+            summary_msg = f"Resume compared. Score: {result.overall_score}. Skills: {', '.join(result.extracted_skills)}. Match summary: {result.summary}"
+            await firestore.save_chat_message(session_id, "assistant", summary_msg)
+            
     except Exception as e:
         logger.error("Resume comparison LLM failed: %s", e)
         payload = ResumeCompareResponse(
@@ -139,9 +148,13 @@ async def _compare_pipeline(file: UploadFile) -> AsyncIterator[str]:
 
 @router.post("/api/resume/compare/stream")
 @limiter.limit("10/minute")
-async def compare_resume_stream(request: Request, file: UploadFile = File(...)):
+async def compare_resume_stream(
+    request: Request, 
+    file: UploadFile = File(...),
+    session_id: str | None = Form(None)
+):
     async def event_stream():
-        async for event in _compare_pipeline(file):
+        async for event in _compare_pipeline(file, session_id):
             yield event
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

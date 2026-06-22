@@ -131,9 +131,13 @@ export const api = {
   compareResumeStream: async (
     file: File,
     onEvent: SseHandler,
+    sessionId?: string,
   ): Promise<ResumeCompareResponse> => {
     const formData = new FormData();
     formData.append('file', file);
+    if (sessionId) {
+      formData.append('session_id', sessionId);
+    }
     const res = await fetch(`${BASE}/api/resume/compare/stream`, {
       method: 'POST',
       body: formData,
