@@ -13,7 +13,11 @@ export function useHydrateSession() {
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (parsed.personalization?.website_config?.featured_projects?.[0]?.id === 'rag-portfolio') {
+        // Invalidate cache if old schema (no timeline) or if it's the default rag-portfolio
+        if (
+          !parsed.personalization?.website_config?.timeline ||
+          parsed.personalization?.website_config?.featured_projects?.[0]?.id === 'rag-portfolio'
+        ) {
           localStorage.removeItem('user_profile_complete');
           setPersonalization(null);
         } else {
