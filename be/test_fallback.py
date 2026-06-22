@@ -1,12 +1,13 @@
 import asyncio
 from config import get_settings
 from langchain_google_genai import ChatGoogleGenerativeAI
+from services.gemini import PRIMARY_MODEL
 
 async def test():
     settings = get_settings()
     
     fallback = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model=PRIMARY_MODEL,
         api_key=settings.GEMINI_API_KEY_FALLBACK,
         temperature=0.7,
         max_retries=0,

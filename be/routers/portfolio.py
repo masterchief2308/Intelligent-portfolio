@@ -28,6 +28,27 @@ def _load_portfolio() -> dict:
     return _portfolio_data
 
 
+@router.get("/api/resume/pdf")
+async def get_resume():
+    """Download the resume PDF."""
+    from fastapi.responses import FileResponse
+    from pathlib import Path
+    
+    search_paths = [
+        Path(__file__).parent.parent / "data" / "Aditya_katkar_resume.pdf",
+    ]
+
+    for path in search_paths:
+        if path.exists():
+            return FileResponse(
+                path=str(path),
+                media_type="application/pdf",
+                filename="Aditya_katkar_resume.pdf",
+            )
+
+    raise HTTPException(status_code=404, detail="Resume PDF not found")
+
+
 @router.get("/api/portfolio")
 async def get_portfolio(email: str | None = Query(None)):
     """Return the complete portfolio data. Dynamically rewritten if email is provided."""
@@ -85,7 +106,12 @@ async def get_portfolio(email: str | None = Query(None)):
 
     # 3. Generate via Gemini Flash / Fallbacks
     logger.info("Generating dynamic portfolio timeline & explore graph for %s", email)
-    from services.gemini import build_dynamic_chain_with_fallbacks
+    from services.gemini import (
+        build_dynamic_chain_with_fallbacks,
+        PRIMARY_MODEL,
+        FALLBACK_MODEL,
+        FALLBACK_LITE_MODEL,
+    )
 
     # We only send experience, education, and simplified projects
     static_timeline = {
@@ -134,17 +160,17 @@ async def get_portfolio(email: str | None = Query(None)):
 
     configs = [
         {
-            "model_name": "gemini-2.5-flash",
+            "model_name": PRIMARY_MODEL,
             "api_key_env": "GEMINI_API_KEY",
             "messages": [primary_system, human_msg]
         },
         {
-            "model_name": "gemini-3.0-flash",
+            "model_name": FALLBACK_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK",
             "messages": [fallback_system, human_msg]
         },
         {
-            "model_name": "gemini-3.1-flash-lite",
+            "model_name": FALLBACK_LITE_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK_2",
             "messages": [fallback_lite_system, human_msg]
         }

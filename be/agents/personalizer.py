@@ -96,7 +96,12 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
             f"Industry: {company_data.get('industry', 'Unknown')}."
         )
 
-    from services.gemini import build_dynamic_chain_with_fallbacks
+    from services.gemini import (
+        build_dynamic_chain_with_fallbacks,
+        PRIMARY_MODEL,
+        FALLBACK_MODEL,
+        FALLBACK_LITE_MODEL,
+    )
 
     # Dynamically load available project IDs
     project_ids = _load_project_ids()
@@ -150,17 +155,17 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
 
     configs = [
         {
-            "model_name": "gemini-2.5-flash",
+            "model_name": PRIMARY_MODEL,
             "api_key_env": "GEMINI_API_KEY",
             "messages": [primary_system, human_msg]
         },
         {
-            "model_name": "gemini-3.0-flash",
+            "model_name": FALLBACK_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK",
             "messages": [fallback_system, human_msg]
         },
         {
-            "model_name": "gemini-3.1-flash-lite",
+            "model_name": FALLBACK_LITE_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK_2",
             "messages": [fallback_lite_system, human_msg]
         }

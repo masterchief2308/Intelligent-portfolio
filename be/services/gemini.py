@@ -11,6 +11,10 @@ from config import get_settings
 
 logger = logging.getLogger(__name__)
 
+PRIMARY_MODEL = "gemini-2.5-flash"
+FALLBACK_MODEL = "gemini-3-flash-preview"
+FALLBACK_LITE_MODEL = "gemini-3.1-flash-lite"
+
 
 class FallbackLLMWrapper:
     """Wraps a primary LLM and a list of fallbacks.
@@ -64,15 +68,16 @@ def _get_llm_with_fallbacks(model_name: str, temperature: float = 0.7) -> Fallba
 
 def get_flash_llm(temperature: float = 0.7) -> FallbackLLMWrapper:
     """Gemini 2.5 Flash — fast + cheap. Used for planning, parsing, validation, chat."""
-    return _get_llm_with_fallbacks("gemini-2.5-flash", temperature)
+    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature)
 
 
 def get_pro_llm(temperature: float = 0.7) -> FallbackLLMWrapper:
     """Originally Gemini 2.5 Pro — but Google Free Tier sets limit to 0. Downgraded to Flash."""
-    return _get_llm_with_fallbacks("gemini-2.5-flash", temperature)
+    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature)
 
 
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 def build_dynamic_chain_with_fallbacks(schema: Any, configs: list[dict], temperature: float = 0.7):
     """
@@ -103,7 +108,10 @@ def build_dynamic_chain_with_fallbacks(schema: Any, configs: list[dict], tempera
         )
         
         prompt = ChatPromptTemplate.from_messages(cfg["messages"])
-        chain = prompt | llm.with_structured_output(schema)
+        if schema is str:
+            chain = prompt | llm | StrOutputParser()
+        else:
+            chain = prompt | llm.with_structured_output(schema)
         chains.append(chain)
         
     if not chains:

@@ -72,7 +72,12 @@ async def chat(request: ChatRequest):
         vp = request.visitor_profile
         visitor_context = f"Visitor: {vp.role or 'Unknown'} at {vp.current_company or 'Unknown'}"
 
-    from services.gemini import build_dynamic_chain_with_fallbacks
+    from services.gemini import (
+        build_dynamic_chain_with_fallbacks,
+        PRIMARY_MODEL,
+        FALLBACK_MODEL,
+        FALLBACK_LITE_MODEL,
+    )
 
     primary_system = SystemMessage(content=(
         "You are an AI assistant for Aditya Katkar's portfolio website. "
@@ -116,29 +121,28 @@ async def chat(request: ChatRequest):
 
     configs = [
         {
-            "model_name": "gemini-2.5-flash",
+            "model_name": PRIMARY_MODEL,
             "api_key_env": "GEMINI_API_KEY",
             "messages": [primary_system] + base_messages
         },
         {
-            "model_name": "gemini-3.0-flash",
+            "model_name": FALLBACK_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK",
             "messages": [fallback_system] + base_messages
         },
         {
-            "model_name": "gemini-3.1-flash-lite",
+            "model_name": FALLBACK_LITE_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK_2",
             "messages": [fallback_lite_system] + base_messages
         }
     ]
 
     try:
-        # Note: chain returns string here, so we don't need with_structured_output
         chain = build_dynamic_chain_with_fallbacks(str, configs)
         response_text = await chain.ainvoke({})
     except Exception as e:
         logger.error("Chat LLM failed: %s", e)
-        response_text = "I'm having trouble connecting right now LLM Free Limit reached. Please try again."
+        response_text = "I'm having trouble connecting right now. Please try again in a moment."
 
     # Step 7: Save assistant response to history
     await firestore.save_chat_message(session_id, "assistant", response_text)

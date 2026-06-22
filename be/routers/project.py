@@ -72,7 +72,12 @@ async def get_project(slug: str, email: str | None = Query(None)):
 
     # 3. Generate via Gemini Pro / Fallbacks
     logger.info("Generating dynamic project %s for %s", slug, email)
-    from services.gemini import build_dynamic_chain_with_fallbacks
+    from services.gemini import (
+        build_dynamic_chain_with_fallbacks,
+        PRIMARY_MODEL,
+        FALLBACK_MODEL,
+        FALLBACK_LITE_MODEL,
+    )
 
     human_msg = HumanMessage(content=(
         f"VISITOR PROFILE:\n{json.dumps(visitor_profile, indent=2)}\n\n"
@@ -113,17 +118,17 @@ async def get_project(slug: str, email: str | None = Query(None)):
 
     configs = [
         {
-            "model_name": "gemini-2.5-flash",
+            "model_name": PRIMARY_MODEL,
             "api_key_env": "GEMINI_API_KEY",
             "messages": [primary_system, human_msg]
         },
         {
-            "model_name": "gemini-3.0-flash",
+            "model_name": FALLBACK_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK",
             "messages": [fallback_system, human_msg]
         },
         {
-            "model_name": "gemini-3.1-flash-lite",
+            "model_name": FALLBACK_LITE_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK_2",
             "messages": [fallback_lite_system, human_msg]
         }
