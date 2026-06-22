@@ -125,11 +125,23 @@ export interface JourneyHighlight {
   relevance: string;
 }
 
+export interface TimelineItem {
+  type: 'experience' | 'education';
+  role: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  location?: string;
+  highlights: string[];
+  relevance?: string;
+}
+
 export interface WebsiteConfig {
   hero: any;
   featured_projects: FeaturedProject[];
   skills_priority: SkillPriority[];
-  journey_highlights: JourneyHighlight[];
+  journey_highlights?: JourneyHighlight[];
+  timeline?: TimelineItem[];
   chat_context: any;
   suggested_queries: string[];
 }

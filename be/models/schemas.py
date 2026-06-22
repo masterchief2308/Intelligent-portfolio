@@ -1,6 +1,6 @@
 from pydantic import Field
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 
 
@@ -49,6 +49,17 @@ class JourneyHighlight(BaseModel):
     relevance: str
 
 
+class TimelineItem(BaseModel):
+    type: Literal["experience", "education"]
+    role: str
+    company: str
+    startDate: str
+    endDate: str
+    location: Optional[str] = None
+    highlights: list[str]
+    relevance: Optional[str] = None
+
+
 class ChatContext(BaseModel):
     opener: str
     focus_areas: Optional[list[str]] = None
@@ -59,7 +70,8 @@ class WebsiteConfig(BaseModel):
     hero: HeroConfig
     featured_projects: list[FeaturedProject] = []
     skills_priority: list[SkillPriority] = []
-    journey_highlights: list[JourneyHighlight] = []
+    journey_highlights: list[JourneyHighlight] = []  # Deprecated in favor of timeline
+    timeline: list[TimelineItem] = []
     chat_context: ChatContext
     suggested_queries: list[str] = []
 

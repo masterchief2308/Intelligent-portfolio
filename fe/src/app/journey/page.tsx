@@ -36,34 +36,31 @@ export default function JourneyPage() {
   const experience = portfolio?.experience || [];
   const education = portfolio?.education || [];
 
-  const timeline = [
-    ...(experience?.map(exp => {
-      const insight = personalization?.website_config?.journey_highlights?.find((h: any) => {
-        const ms = typeof h === 'string' ? h : h?.milestone;
-        if (!ms) return false;
-        return ms.toLowerCase().includes(exp.company.toLowerCase()) || 
-               exp.company.toLowerCase().includes(ms.toLowerCase());
-      });
-      return { ...exp, type: 'experience' as const, relevance: typeof insight === 'string' ? insight : insight?.relevance };
-    }) || []),
-    ...(education?.map(edu => {
-      const insight = personalization?.website_config?.journey_highlights?.find((h: any) => {
-        const ms = typeof h === 'string' ? h : h?.milestone;
-        if (!ms) return false;
-        return ms.toLowerCase().includes(edu.institution.toLowerCase()) || 
-               edu.institution.toLowerCase().includes(ms.toLowerCase());
-      });
-      return {
+  const generatedTimeline = personalization?.website_config?.timeline;
+  let timeline = [];
+
+  if (generatedTimeline && generatedTimeline.length > 0) {
+    // Primary Path: Use 100% LLM generated timeline
+    timeline = generatedTimeline;
+  } else {
+    // Fallback Path: Use static portfolio.json
+    timeline = [
+      ...(experience?.map(exp => ({
+        ...exp,
+        type: 'experience' as const,
+        relevance: undefined
+      })) || []),
+      ...(education?.map(edu => ({
         company: edu.institution,
         role: edu.degree,
         startDate: edu.startDate,
         endDate: edu.endDate,
         highlights: [edu.cgpa],
         type: 'education' as const,
-        relevance: typeof insight === 'string' ? insight : insight?.relevance
-      };
-    }) || [])
-  ];
+        relevance: undefined
+      })) || [])
+    ];
+  }
 
   const handleDownload = () => {
     setDownloading(true);
