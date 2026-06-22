@@ -158,7 +158,8 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
         "2. Focus strictly on matching the visitor's role with the core facts of the portfolio. "
         "3. MUST provide 2-3 'suggested_queries' for the chat bot. "
         "4. DO NOT hallucinate. Do not skip any projects. "
-        "5. Strictly follow the JSON schema format. "
+        "5. CRITICAL: You MUST include the full timeline (experience/education) from the portfolio evidence. DO NOT LEAVE THE TIMELINE EMPTY! "
+        "6. Strictly follow the JSON schema format. "
         f"- Available project IDs: {project_ids_str}\n"
     ))
 
