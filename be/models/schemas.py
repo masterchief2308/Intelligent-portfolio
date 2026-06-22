@@ -181,6 +181,12 @@ class ArchitectureNode(BaseModel):
     badge: Optional[str] = Field(default=None, description="Short tag (e.g. 'RUN', 'DB', 'GCP')")
     isExternal: Optional[bool] = Field(default=False, description="True if it represents a user/external actor")
     parentId: Optional[str] = Field(default=None, description="ID of the group node this node belongs inside")
+    layer: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=4,
+        description="Optional vertical ordering hint for the FE layout engine: 0=external, 1=frontend, 2=API/compute, 3=workers, 4=data/storage. Do NOT output x/y/width/height.",
+    )
 
 
 class ArchitectureEdge(BaseModel):
@@ -189,6 +195,8 @@ class ArchitectureEdge(BaseModel):
     animated: Optional[bool] = Field(default=True, description="Whether the edge should animate")
     label: Optional[str] = Field(default=None, description="Text label to display on the edge")
     dashed: Optional[bool] = Field(default=False, description="Whether the edge should be dashed (typically for DB/Storage)")
+    sourceHandle: Optional[str] = Field(default=None, description="React Flow source handle id (e.g. 's-bottom', 's-right')")
+    targetHandle: Optional[str] = Field(default=None, description="React Flow target handle id (e.g. 't-top', 't-left')")
 
 
 class DynamicArchitectureConfig(BaseModel):

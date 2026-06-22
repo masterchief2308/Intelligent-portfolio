@@ -1,43 +1,13 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useHydrateSession } from '@/hooks/useHydrateSession';
 import { useProject } from '@/hooks/useProject';
 import { useArchitecture } from '@/hooks/useArchitecture';
+import ArchitectureTopology from '@/components/ArchitectureTopology';
+import { ARCH_LAYOUT } from '@/lib/architectureLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ReactFlow, Background, Controls, Handle, Position } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import dagre from 'dagre';
-
-const BrutalistNode = ({ data }: { data: any }) => (
-  <div className={`
-    bg-[#050505] border px-4 py-2 font-mono text-[10px] md:text-xs tracking-widest transition-all duration-300 relative flex items-center gap-2
-    ${data.isProject ? 'border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)] font-bold' :
-      'border-foreground/20 text-foreground'}
-  `}>
-    <Handle type="target" position={Position.Top} id="t-top" className="w-1 h-1 bg-amber-500/50 border-none" />
-    <Handle type="target" position={Position.Left} className="w-1 h-1 bg-amber-500/50 border-none" />
-    {data.badge && <span className="text-amber-500 font-bold opacity-70">[{data.badge}]</span>}
-    {data.label}
-    <Handle type="source" position={Position.Right} className="w-1 h-1 bg-amber-500/50 border-none" />
-    <Handle type="source" position={Position.Bottom} id="s-bottom" className="w-1 h-1 bg-amber-500/50 border-none" />
-  </div>
-);
-
-const BoundingBoxNode = ({ data }: { data: any }) => (
-  <div className="w-full h-full border-2 border-dashed border-foreground/20 bg-foreground/[0.02] rounded-none">
-    <div className="absolute top-0 left-4 -translate-y-1/2 bg-[#050505] px-2 font-mono text-[10px] uppercase tracking-widest text-foreground font-bold flex items-center gap-2 border border-foreground/20">
-      {data.badge && <span className="text-amber-500">[{data.badge}]</span>}
-      {data.label}
-    </div>
-  </div>
-);
-
-const nodeTypes = {
-  custom: BrutalistNode,
-  group: BoundingBoxNode,
-};
 
 export default function ProjectDetail() {
   const params = useParams();
@@ -52,53 +22,8 @@ export default function ProjectDetail() {
   const [viewMode, setViewMode] = useState<'business' | 'technical'>('business');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const baseNodes = archData?.nodes || [];
-  const baseEdges = archData?.edges || [];
-
-  const { layoutedNodes, layoutedEdges } = useMemo(() => {
-    if (!baseNodes.length) return { layoutedNodes: [], layoutedEdges: [] };
-    
-    const nodeIds = new Set(baseNodes.map((n: any) => n.id));
-    const validEdges = baseEdges.filter((e: any) => nodeIds.has(e.source) && nodeIds.has(e.target));
-
-    const dagreGraph = new dagre.graphlib.Graph();
-    dagreGraph.setDefaultEdgeLabel(() => ({}));
-    dagreGraph.setGraph({ rankdir: 'LR', ranksep: 150, nodesep: 100 });
-
-    baseNodes.forEach((node: any) => {
-      // Set group node dimensions larger
-      if (node.type === 'group') {
-        dagreGraph.setNode(node.id, { width: 500, height: 400 });
-      } else {
-        dagreGraph.setNode(node.id, { width: 180, height: 50 });
-      }
-    });
-
-    validEdges.forEach((edge: any) => {
-      dagreGraph.setEdge(edge.source, edge.target);
-    });
-
-    try {
-      dagre.layout(dagreGraph);
-
-      const layoutedNodes = baseNodes.map((node: any) => {
-        const nodeWithPosition = dagreGraph.node(node.id);
-        
-        return {
-          ...node,
-          position: {
-            x: nodeWithPosition?.x ? nodeWithPosition.x - (node.type === 'group' ? 250 : 90) : 0,
-            y: nodeWithPosition?.y ? nodeWithPosition.y - (node.type === 'group' ? 200 : 25) : 0,
-          },
-        };
-      });
-
-      return { layoutedNodes, layoutedEdges: validEdges };
-    } catch (err) {
-      console.error("Dagre layout failed:", err);
-      return { layoutedNodes: baseNodes, layoutedEdges: validEdges };
-    }
-  }, [baseNodes, baseEdges]);
+  const archNodes = archData?.nodes ?? [];
+  const archEdges = archData?.edges ?? [];
 
   if (!mounted || projectLoading) {
     return (
@@ -137,46 +62,6 @@ export default function ProjectDetail() {
       </div>
     );
   }
-
-  const displayNodes = layoutedNodes.map(node => {
-    if (!selectedNodeId) return { ...node, style: { ...node.style, transition: 'opacity 0.3s' } };
-
-    const connectedEdges = baseEdges.filter(e => e.source === selectedNodeId || e.target === selectedNodeId);
-    const connectedNodeIds = new Set([
-      selectedNodeId,
-      ...connectedEdges.map(e => e.source),
-      ...connectedEdges.map(e => e.target)
-    ]);
-
-    const hasActiveChild = baseNodes.some(n => n.parentId === node.id && connectedNodeIds.has(n.id));
-    const isGroup = node.type === 'group';
-    const isVisible = connectedNodeIds.has(node.id) || (isGroup && hasActiveChild);
-
-    return {
-      ...node,
-      style: {
-        ...node.style,
-        opacity: isVisible ? 1 : 0.2,
-        transition: 'opacity 0.3s'
-      }
-    };
-  });
-
-  const displayEdges = layoutedEdges.map(edge => {
-    if (!selectedNodeId) return { ...edge, style: { ...edge.style, transition: 'opacity 0.3s, stroke 0.3s' } };
-
-    const isActive = edge.source === selectedNodeId || edge.target === selectedNodeId;
-
-    return {
-      ...edge,
-      style: {
-        ...edge.style,
-        opacity: isActive ? 1 : 0.1,
-        stroke: isActive ? 'rgba(245,158,11,1)' : (edge.style?.stroke || 'rgba(251,191,36,0.3)'),
-        transition: 'opacity 0.3s, stroke 0.3s'
-      }
-    };
-  });
 
   return (
     <div className="min-h-screen relative z-10 px-6 sm:px-12 md:px-24 pt-32 pb-24 flex flex-col">
@@ -221,34 +106,21 @@ export default function ProjectDetail() {
           </div>
         </div>
 
-        <div className="mb-16 border border-foreground/10 bg-[#050505] relative overflow-hidden h-[500px]">
+        <div
+          className="mb-16 border border-foreground/10 bg-[#050505] relative overflow-hidden"
+          style={{ height: ARCH_LAYOUT.canvasHeight, minHeight: ARCH_LAYOUT.canvasMinHeight }}
+        >
           <div className="absolute top-4 left-6 z-10 font-mono text-xs uppercase tracking-widest text-amber-500 bg-[#050505] px-2 py-1">
             02 // Architecture Topology
           </div>
 
-          <div className="w-full h-full pt-16">
-            {archLoading ? (
-              <div className="w-full h-full flex items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                COMPILING TOPOLOGY BLUEPRINTS...
-              </div>
-            ) : (
-              <ReactFlow
-                nodes={displayNodes}
-                edges={displayEdges}
-                nodeTypes={nodeTypes}
-                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-                onPaneClick={() => setSelectedNodeId(null)}
-                fitView
-                fitViewOptions={{ padding: 0.2 }}
-                minZoom={0.1}
-                proOptions={{ hideAttribution: true }}
-                className="bg-transparent"
-              >
-                <Background color="rgba(255,255,255,0.02)" gap={40} size={1} />
-                <Controls className="fill-foreground border-foreground/20 bg-[#050505] opacity-50 hover:opacity-100" />
-              </ReactFlow>
-            )}
-          </div>
+          <ArchitectureTopology
+            nodes={archNodes}
+            edges={archEdges}
+            selectedNodeId={selectedNodeId}
+            onNodeSelect={setSelectedNodeId}
+            isLoading={archLoading}
+          />
         </div>
 
         <div className="border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-8 sm:p-12 relative overflow-hidden">

@@ -61,14 +61,16 @@ export interface PortfolioData {
 export interface ArchNode {
   id: string;
   type: 'custom' | 'group';
-  x: number;
-  y: number;
+  x?: number;
+  y?: number;
   label: string;
   badge?: string;
   parentId?: string;
   isExternal?: boolean;
   width?: number;
   height?: number;
+  /** Vertical ordering hint for the FE Dagre layout engine (0=external … 4=data). */
+  layer?: number;
 }
 
 export interface ArchEdge {
