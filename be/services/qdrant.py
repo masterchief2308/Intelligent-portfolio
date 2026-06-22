@@ -160,6 +160,10 @@ class QdrantService:
             "cloud": payload.get("cloud"),
             "tech_stack": payload.get("tech_stack", []),
             "keywords": payload.get("keywords", []),
+            # Resume pool fields
+            "candidate_name": payload.get("candidate_name"),
+            "filename": payload.get("filename"),
+            "uploaded_at": payload.get("uploaded_at"),
         }
 
     def _diversify_by_project(
@@ -199,15 +203,18 @@ class QdrantService:
         query: str,
         fetch_k: int,
         query_filter: models.Filter | None,
+        collection_override: str | None = None,
     ) -> list[Any]:
         self._ensure_client()
         if self._client is None:
             return []
 
+        target = collection_override or self._collection
+
         if self._dense_vector_name and self._sparse_vector_name:
             try:
                 response = self._client.query_points(
-                    collection_name=self._collection,
+                    collection_name=target,
                     prefetch=[
                         models.Prefetch(
                             query=models.Document(text=query, model=SPARSE_MODEL),
@@ -232,7 +239,7 @@ class QdrantService:
 
         try:
             results = self._client.query(
-                collection_name=self._collection,
+                collection_name=target,
                 query_text=query,
                 query_filter=query_filter,
                 limit=fetch_k,
@@ -252,12 +259,14 @@ class QdrantService:
         project_slug: str | None = None,
         doc_type: str | None = None,
         max_per_project: int | None = None,
+        collection_override: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Hybrid retrieval with over-fetch + project diversification.
 
-        use_case: workflow preset (chat, personalization, resume_compare, tool, default).
+        use_case: workflow preset (chat, personalization, resume_compare, recruiter_match, tool, default).
         Explicit kwargs override the profile. top_p is LLM sampling — not used here.
+        collection_override: if set, search this collection instead of self._collection.
         """
         profile = get_retrieval_profile(use_case)
         final_k = top_k if top_k is not None else profile.top_k
@@ -267,10 +276,158 @@ class QdrantService:
         effective_doc_type = doc_type if doc_type is not None else profile.doc_type
 
         query_filter = self._build_filter(project_slug=project_slug, doc_type=effective_doc_type)
-        points = self._hybrid_query(query, fetch_k=max(candidate_k, final_k), query_filter=query_filter)
+
+        target_collection = collection_override or self._collection
+        points = self._hybrid_query(
+            query,
+            fetch_k=max(candidate_k, final_k),
+            query_filter=query_filter,
+            collection_override=target_collection,
+        )
 
         chunks = [self._hit_to_chunk(p) for p in points if p.score is None or p.score >= threshold]
         return self._diversify_by_project(chunks, top_k=final_k, max_per_project=per_project)
+
+    # ── Resume Pool Collection ──────────────────────────────────────
+
+    def _resume_pool_collection(self) -> str:
+        from config import get_settings
+        return get_settings().QDRANT_RESUME_POOL_COLLECTION
+
+    def ensure_resume_pool_collection(self):
+        """Create the resume_pool hybrid collection if it doesn't exist."""
+        self._ensure_client()
+        if self._client is None:
+            return
+
+        pool = self._resume_pool_collection()
+        collections = [c.name for c in self._client.get_collections().collections]
+        if pool in collections:
+            return
+
+        self._client.create_collection(
+            collection_name=pool,
+            vectors_config=self._client.get_fastembed_vector_params(),
+            sparse_vectors_config=self._client.get_fastembed_sparse_vector_params(),
+        )
+        logger.info("Created resume_pool collection: %s", pool)
+
+    def upsert_resume_documents(
+        self,
+        documents: list[str],
+        metadata: list[dict[str, Any]],
+        ids: list[str],
+    ):
+        """Upsert resume chunks into the resume_pool collection."""
+        self._ensure_client()
+        if self._client is None:
+            logger.warning("Qdrant not available, skipping resume upsert")
+            return
+
+        pool = self._resume_pool_collection()
+        self._client.add(
+            collection_name=pool,
+            documents=documents,
+            metadata=metadata,
+            ids=ids,
+        )
+        logger.info("Upserted %d resume chunks into %s", len(documents), pool)
+
+    async def search_resume_pool(
+        self,
+        query: str,
+        top_k: int = 20,
+    ) -> list[dict[str, Any]]:
+        """Hybrid search against the resume_pool collection."""
+        pool = self._resume_pool_collection()
+        return await self.search(
+            query=query,
+            use_case="recruiter_match",
+            top_k=top_k,
+            collection_override=pool,
+        )
+
+    def clear_resume_pool(self):
+        """Drop and recreate the resume_pool collection."""
+        self._ensure_client()
+        if self._client is None:
+            raise RuntimeError("Qdrant client unavailable")
+
+        pool = self._resume_pool_collection()
+        existing = [c.name for c in self._client.get_collections().collections]
+        if pool in existing:
+            self._client.delete_collection(collection_name=pool)
+        self._client.create_collection(
+            collection_name=pool,
+            vectors_config=self._client.get_fastembed_vector_params(),
+            sparse_vectors_config=self._client.get_fastembed_sparse_vector_params(),
+        )
+        logger.info("Cleared and recreated resume_pool collection: %s", pool)
+
+    def get_resume_pool_stats(self) -> dict[str, Any]:
+        """Return count and list of unique filenames in the pool."""
+        self._ensure_client()
+        if self._client is None:
+            return {"count": 0, "filenames": [], "candidates": []}
+
+        pool = self._resume_pool_collection()
+        try:
+            info = self._client.get_collection(collection_name=pool)
+            count = info.points_count or 0
+        except Exception:
+            return {"count": 0, "filenames": [], "candidates": []}
+
+        # Scroll a sample to extract unique filenames & candidate names
+        filenames: set[str] = set()
+        candidates: set[str] = set()
+        try:
+            points, _ = self._client.scroll(
+                collection_name=pool,
+                limit=500,
+                with_payload=True,
+            )
+            for p in points:
+                payload = p.payload or {}
+                if payload.get("filename"):
+                    filenames.add(payload["filename"])
+                if payload.get("candidate_name"):
+                    candidates.add(payload["candidate_name"])
+        except Exception as e:
+            logger.warning("Failed to scroll resume_pool: %s", e)
+
+        return {
+            "count": count,
+            "filenames": sorted(filenames),
+            "candidates": sorted(candidates),
+        }
+
+    def purge_expired_resumes(self, ttl_hours: int = 24):
+        """Delete resume chunks older than ttl_hours from the pool."""
+        import datetime
+        self._ensure_client()
+        if self._client is None:
+            return 0
+
+        pool = self._resume_pool_collection()
+        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(hours=ttl_hours)).isoformat()
+
+        try:
+            self._client.delete(
+                collection_name=pool,
+                points_selector=models.FilterSelector(
+                    filter=models.Filter(
+                        must=[
+                            models.FieldCondition(
+                                key="uploaded_at",
+                                range=models.Range(lt=cutoff),
+                            )
+                        ]
+                    )
+                ),
+            )
+            logger.info("Purged resume chunks older than %dh from %s", ttl_hours, pool)
+        except Exception as e:
+            logger.warning("Resume purge failed: %s", e)
 
 
 _instance: Optional[QdrantService] = None

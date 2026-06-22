@@ -224,3 +224,34 @@ export interface AnalyticsDashboard {
     views: number;
   }[];
 }
+
+// ── Recruiter ───────────────────────────────────────────────────
+
+export interface CandidateMatch {
+  candidate_name: string;
+  filename: string;
+  relevancy_score: number;
+  matching_skills: string[];
+  missing_skills: string[];
+  explanation: string;
+}
+
+export interface JDMatchResponse {
+  matches: CandidateMatch[];
+  jd_skills_extracted: string[];
+  summary: string;
+}
+
+export interface ResumePoolStats {
+  count: number;
+  filenames: string[];
+  candidates: string[];
+  ttl_hours: number;
+}
+
+export interface ResumeUploadResponse {
+  ingested: number;
+  failed: string[];
+  warnings: string[];
+  pool_count: number;
+}

@@ -26,6 +26,7 @@ from routers.analytics import router as analytics_router
 from routers.admin import router as admin_router
 from routers.resume_compare import router as resume_compare_router
 from routers.project import router as project_router
+from routers.recruiter import router as recruiter_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -69,6 +70,14 @@ async def lifespan(app: FastAPI):
         api_key=settings.QDRANT_API_KEY,
     )
     qdrant.ensure_collection()
+    qdrant.ensure_resume_pool_collection()
+
+    # Purge expired resumes on startup
+    try:
+        qdrant.purge_expired_resumes(ttl_hours=settings.RESUME_POOL_TTL_HOURS)
+        logger.info("Startup: purged expired resumes (TTL=%dh)", settings.RESUME_POOL_TTL_HOURS)
+    except Exception as e:
+        logger.warning("Startup resume purge failed: %s", e)
 
     yield
 
@@ -127,6 +136,7 @@ app.include_router(analytics_router, tags=["Analytics"])
 app.include_router(admin_router, tags=["Admin"])
 app.include_router(resume_compare_router, tags=["Resume Compare"])
 app.include_router(project_router, tags=["Project"])
+app.include_router(recruiter_router, tags=["Recruiter"])
 
 
 @app.get("/health", tags=["Health"])

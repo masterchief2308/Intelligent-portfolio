@@ -11,6 +11,9 @@ import type {
   AnalyticsVisit,
   AnalyticsDashboard,
   Project,
+  JDMatchResponse,
+  ResumePoolStats,
+  ResumeUploadResponse,
 } from '@/types';
 import { consumeSseStream, type SseHandler } from '@/lib/sseClient';
 
@@ -169,4 +172,63 @@ export const api = {
     request<AnalyticsDashboard>('/api/admin/analytics', {
       headers: authHeaders(token),
     }),
+
+  // ── Recruiter ───────────────────────────────────────────────
+
+  uploadResumes: async (files: File[]): Promise<ResumeUploadResponse> => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    const res = await fetch(`${BASE}/api/recruiter/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(detail || `Upload failed (${res.status})`);
+    }
+    return res.json();
+  },
+
+  matchJDStream: async (
+    jobDescription: string,
+    onEvent: SseHandler,
+  ): Promise<JDMatchResponse> => {
+    const res = await fetch(`${BASE}/api/recruiter/match/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_description: jobDescription }),
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(detail || `Match failed (${res.status})`);
+    }
+
+    let result: JDMatchResponse | null = null;
+    await consumeSseStream(res, (event) => {
+      onEvent(event);
+      if (event.type === 'error') {
+        throw new Error(String(event.message || 'Matching failed'));
+      }
+      if (event.type === 'result' && event.data) {
+        result = event.data as JDMatchResponse;
+      }
+    });
+
+    if (!result) {
+      throw new Error('Match stream ended without a result');
+    }
+    return result;
+  },
+
+  getResumePool: () => request<ResumePoolStats>('/api/recruiter/pool'),
+
+  clearResumePool: async (): Promise<{ cleared: boolean }> => {
+    const res = await fetch(`${BASE}/api/recruiter/pool`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      throw new Error(`Clear pool failed (${res.status})`);
+    }
+    return res.json();
+  },
 };

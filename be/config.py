@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     QDRANT_URL: str = "http://qdrant:6333"
     QDRANT_API_KEY: str = ""
     QDRANT_COLLECTION: str = "portfolio"
+    QDRANT_RESUME_POOL_COLLECTION: str = "resume_pool"
+    RECRUITER_MAX_RESUMES: int = 100
+    RESUME_POOL_TTL_HOURS: int = 24
     # Override defaults for the "default" retrieval profile only (see retrieval_profiles.py)
     QDRANT_TOP_K: int = 8
     QDRANT_FETCH_K: int = 24

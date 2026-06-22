@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-RetrievalUseCase = Literal["chat", "personalization", "resume_compare", "tool", "default"]
+RetrievalUseCase = Literal["chat", "personalization", "resume_compare", "recruiter_match", "tool", "default"]
 
 
 @dataclass(frozen=True)
@@ -48,6 +48,13 @@ PROFILES: dict[RetrievalUseCase, RetrievalProfile] = {
         fetch_k=30,
         max_per_project=4,
         doc_type="project",
+    ),
+    # Recruiter: wide candidate search across resume pool
+    "recruiter_match": RetrievalProfile(
+        top_k=20,
+        fetch_k=60,
+        max_per_project=10,
+        score_threshold=0.0,
     ),
     # LangChain / MCP tool — caller may pass top_k override
     "tool": RetrievalProfile(
