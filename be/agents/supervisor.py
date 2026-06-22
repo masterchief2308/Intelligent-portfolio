@@ -143,15 +143,44 @@ async def run_personalization_stream(
     start = time.time()
     graph = get_graph()
 
+    msg_map = {
+        "research_planner": {
+            "running": "Research Planner defining intelligence strategy...",
+            "done": "Research Planner defined intelligence strategy...",
+            "calls": 1,
+        },
+        "company_researcher": {
+            "running": "Company Researcher analyzing technical footprint...",
+            "done": "Company Researcher analyzed technical footprint...",
+            "calls": 3,
+        },
+        "portfolio_rag": {
+            "running": "Portfolio Engine locating semantic matches...",
+            "done": "Portfolio Engine located semantic matches...",
+            "calls": 3,
+        },
+        "validator": {
+            "running": "Validator scoring strategic alignment...",
+            "done": "Validator scored strategic alignment...",
+            "calls": 4,
+        },
+        "personalizer": {
+            "running": "Executive Synthesis finalizing blueprints...",
+            "done": "Executive Synthesis finalized blueprints...",
+            "calls": 5,
+        },
+    }
+    node_order = list(msg_map.keys())
+
     try:
-        # Stream the graph execution
         current_state = initial_state.copy()
-        
+        first = msg_map[node_order[0]]
+        yield f"data: {json.dumps({'type': 'step', 'id': node_order[0], 'label': first['running'], 'status': 'running'})}\n\n"
+
         async for event in graph.astream(initial_state, stream_mode="updates"):
             for node_name, state_updates in event.items():
                 logger.info("Completed node: %s", node_name)
-                
-                # Accumulate state updates
+
                 if isinstance(state_updates, dict):
                     for k, v in state_updates.items():
                         if k == "errors":
@@ -159,17 +188,14 @@ async def run_personalization_stream(
                         else:
                             current_state[k] = v
 
-                # Yield a progress message and API call count
-                msg_map = {
-                    "research_planner": {"msg": "Research Planner defined intelligence strategy...", "calls": 1},
-                    "company_researcher": {"msg": "Company Researcher analyzed technical footprint...", "calls": 3},
-                    "portfolio_rag": {"msg": "Portfolio Engine located semantic matches...", "calls": 3},
-                    "validator": {"msg": "Validator scored strategic alignment...", "calls": 4},
-                    "personalizer": {"msg": "Executive Synthesis finalized blueprints...", "calls": 5}
-                }
-                step_info = msg_map.get(node_name, {"msg": f"Completed step: {node_name}...", "calls": 0})
-                
-                yield f"data: {json.dumps({'status': step_info['msg'], 'api_calls': step_info['calls']})}\n\n"
+                step_info = msg_map.get(node_name, {"running": f"Running {node_name}...", "done": f"Completed {node_name}...", "calls": 0})
+                yield f"data: {json.dumps({'type': 'step', 'id': node_name, 'label': step_info['done'], 'status': 'done', 'api_calls': step_info['calls']})}\n\n"
+
+                next_idx = node_order.index(node_name) + 1 if node_name in node_order else -1
+                if 0 <= next_idx < len(node_order):
+                    next_node = node_order[next_idx]
+                    next_info = msg_map[next_node]
+                    yield f"data: {json.dumps({'type': 'step', 'id': next_node, 'label': next_info['running'], 'status': 'running'})}\n\n"
                 
         # Pipeline finished, yield final result
         final_payload = {

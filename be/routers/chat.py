@@ -1,9 +1,13 @@
 """POST /api/chat — RAG chat with persistent conversation history."""
 
 import hashlib
+import json
 import logging
+from typing import AsyncIterator
+
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 
 from models.schemas import ChatRequest, ChatResponse
 from services.firestore import get_firestore
@@ -15,34 +19,45 @@ router = APIRouter()
 
 
 def _make_session_id(email: str, session_id: str) -> str:
-    """Deterministic session ID from email so same user resumes chat."""
     if session_id:
         return session_id
     return f"chat_{hashlib.sha256(email.encode()).hexdigest()[:16]}"
 
 
-@router.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    """Handle a chat message with persistent conversation history:
-    1. Load chat history from Firestore.
-    2. Load personalization context.
-    3. Use search_portfolio tool for RAG retrieval.
-    4. Generate response with full conversation context.
-    5. Save both user message and response to history.
-    """
-    firestore = get_firestore()
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
 
-    # Determine session ID (deterministic from email if not provided)
+
+def _step(id: str, label: str | None = None, status: str = "running") -> dict:
+    event: dict = {"type": "step", "id": id, "status": status}
+    if label is not None:
+        event["label"] = label
+    return event
+
+
+def _build_sources(chunks: list) -> list[dict]:
+    sources = []
+    seen = set()
+    for chunk in chunks:
+        slug = chunk.get("project_slug") or chunk.get("doc_id")
+        section = chunk.get("section") or chunk.get("doc_type", "")
+        if slug and (slug, section) not in seen:
+            sources.append({"project": slug, "section": section})
+            seen.add((slug, section))
+    return sources[:3]
+
+
+async def _run_chat_pipeline(request: ChatRequest, stream_tokens: bool = False) -> AsyncIterator[str]:
+    firestore = get_firestore()
     visitor_email = request.visitor_profile.email if request.visitor_profile else ""
     session_id = _make_session_id(visitor_email or request.session_id, request.session_id)
 
-    # Step 1: Load chat history
+    yield _sse(_step("history", "Loading conversation history"))
     history = await firestore.get_chat_history(session_id, max_messages=10)
-
-    # Step 2: Save user message
     await firestore.save_chat_message(session_id, "user", request.message)
+    yield _sse(_step("history", status="done"))
 
-    # Step 3: Load personalization context
+    yield _sse(_step("context", "Loading visitor personalization"))
     personalization_context = ""
     if visitor_email:
         cached = await firestore.get_personalization(visitor_email)
@@ -56,9 +71,11 @@ async def chat(request: ChatRequest):
                 f"Role: {cached.get('visitor_profile', {}).get('role', 'Unknown')}\n"
                 f"Featured projects shown: {featured}"
             )
+    yield _sse(_step("context", status="done"))
 
-    # Step 4: Hybrid RAG retrieval (project-diversified)
+    yield _sse(_step("rag", "Hybrid search across portfolio projects"))
     chunks: list = []
+    portfolio_context = "Portfolio search unavailable."
     try:
         qdrant = get_qdrant()
         chunks = await qdrant.search(
@@ -69,9 +86,8 @@ async def chat(request: ChatRequest):
         portfolio_context = format_chunks_for_llm(chunks)
     except Exception as e:
         logger.warning("Portfolio search failed: %s", e)
-        portfolio_context = "Portfolio search unavailable."
+    yield _sse(_step("rag", status="done"))
 
-    # Step 5: Build visitor context
     visitor_context = ""
     if request.visitor_profile:
         vp = request.visitor_profile
@@ -111,59 +127,89 @@ async def chat(request: ChatRequest):
         f"PORTFOLIO CONTEXT:\n{portfolio_context}"
     ))
 
-    # Base messages layout without system prompt
     base_messages = []
-    
-    # Add conversation history
     for msg in history:
         if msg["role"] == "user":
             base_messages.append(HumanMessage(content=msg["content"]))
         elif msg["role"] == "assistant":
             base_messages.append(AIMessage(content=msg["content"]))
-
-    # Add current message
     base_messages.append(HumanMessage(content=request.message))
 
     configs = [
         {
             "model_name": PRIMARY_MODEL,
             "api_key_env": "GEMINI_API_KEY",
-            "messages": [primary_system] + base_messages
+            "messages": [primary_system] + base_messages,
         },
         {
             "model_name": FALLBACK_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK",
-            "messages": [fallback_system] + base_messages
+            "messages": [fallback_system] + base_messages,
         },
         {
             "model_name": FALLBACK_LITE_MODEL,
             "api_key_env": "GEMINI_API_KEY_FALLBACK_2",
-            "messages": [fallback_lite_system] + base_messages
-        }
+            "messages": [fallback_lite_system] + base_messages,
+        },
     ]
 
+    yield _sse(_step("llm", "Generating answer with Gemini"))
+    response_text = ""
     try:
         chain = build_dynamic_chain_with_fallbacks(str, configs)
-        response_text = await chain.ainvoke({})
+        if stream_tokens:
+            async for chunk in chain.astream({}):
+                text = chunk if isinstance(chunk, str) else str(chunk)
+                if len(text) > len(response_text):
+                    delta = text[len(response_text):]
+                    response_text = text
+                    if delta:
+                        yield _sse({"type": "token", "content": delta})
+        else:
+            response_text = await chain.ainvoke({})
     except Exception as e:
         logger.error("Chat LLM failed: %s", e)
         response_text = "I'm having trouble connecting right now. Please try again in a moment."
+        if stream_tokens:
+            yield _sse({"type": "token", "content": response_text})
+    yield _sse(_step("llm", status="done"))
 
-    # Step 7: Save assistant response to history
     await firestore.save_chat_message(session_id, "assistant", response_text)
+    sources = _build_sources(chunks)
 
-    # Extract sources from retrieved chunks
-    sources = []
-    seen = set()
-    for chunk in chunks:
-        slug = chunk.get("project_slug") or chunk.get("doc_id")
-        section = chunk.get("section") or chunk.get("doc_type", "")
-        if slug and (slug, section) not in seen:
-            sources.append({"project": slug, "section": section})
-            seen.add((slug, section))
+    yield _sse({
+        "type": "result",
+        "data": {
+            "response": response_text,
+            "sources": sources,
+            "suggested_followups": [],
+        },
+    })
 
-    return ChatResponse(
-        response=response_text,
-        sources=sources[:3],
-        suggested_followups=[],
-    )
+
+@router.post("/api/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """SSE stream with pipeline thinking steps and token-by-token response."""
+    async def event_stream():
+        async for event in _run_chat_pipeline(request, stream_tokens=True):
+            yield event
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@router.post("/api/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """Non-streaming chat (legacy). Prefer /api/chat/stream for thinking UI."""
+    result = None
+    async for event in _run_chat_pipeline(request, stream_tokens=False):
+        if event.startswith("data: "):
+            payload = json.loads(event[6:].strip())
+            if payload.get("type") == "result":
+                result = payload["data"]
+    if not result:
+        return ChatResponse(
+            response="I'm having trouble connecting right now. Please try again in a moment.",
+            sources=[],
+            suggested_followups=[],
+        )
+    return ChatResponse(**result)

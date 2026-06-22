@@ -1,16 +1,20 @@
 """POST /api/resume/compare — Upload a resume and compare against portfolio projects."""
 
-import logging
 import io
-from fastapi import APIRouter, UploadFile, File, Request, Depends, HTTPException
+import json
+import logging
+from typing import AsyncIterator
+
+from fastapi import APIRouter, UploadFile, File, Request, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from langchain_core.messages import SystemMessage, HumanMessage
 
 from services.qdrant import get_qdrant
 from services.portfolio_chunks import format_chunks_for_llm
 from services.gemini import get_flash_llm
-from langchain_core.messages import SystemMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,15 +37,24 @@ class ResumeCompareResponse(BaseModel):
 
 
 class ResumeCompareResult(BaseModel):
-    """Structured output for resume comparison."""
     overall_score: float = Field(description="Overall relevancy score 0.0 to 1.0")
     matches: list[RelevancyMatch] = Field(default_factory=list)
     extracted_skills: list[str] = Field(default_factory=list, description="Skills extracted from resume")
     summary: str = Field(description="Brief summary of the comparison")
 
 
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+def _step(id: str, label: str | None = None, status: str = "running") -> dict:
+    event: dict = {"type": "step", "id": id, "status": status}
+    if label is not None:
+        event["label"] = label
+    return event
+
+
 async def _extract_text_from_pdf(file: UploadFile) -> str:
-    """Extract text from uploaded PDF."""
     try:
         from PyPDF2 import PdfReader
         content = await file.read()
@@ -56,49 +69,39 @@ async def _extract_text_from_pdf(file: UploadFile) -> str:
 
 
 async def _extract_text_from_txt(file: UploadFile) -> str:
-    """Extract text from uploaded text file."""
     content = await file.read()
     return content.decode("utf-8", errors="ignore").strip()
 
 
-@router.post("/api/resume/compare", response_model=ResumeCompareResponse)
-@limiter.limit("10/minute")
-async def compare_resume(
-    request: Request,
-    file: UploadFile = File(...),
-):
-    """Upload a resume (PDF or TXT) and compare against portfolio projects.
-    Returns relevancy scores, matched skills, and explanations.
-    """
-    # Step 1: Extract text from upload
-    if file.content_type == "application/pdf" or file.filename.endswith(".pdf"):
+async def _compare_pipeline(file: UploadFile) -> AsyncIterator[str]:
+    yield _sse(_step("extract", "Extracting text from uploaded resume"))
+
+    if file.content_type == "application/pdf" or (file.filename or "").endswith(".pdf"):
         resume_text = await _extract_text_from_pdf(file)
-    elif file.content_type in ("text/plain",) or file.filename.endswith(".txt"):
+    elif file.content_type in ("text/plain",) or (file.filename or "").endswith(".txt"):
         resume_text = await _extract_text_from_txt(file)
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Unsupported file type. Upload PDF or TXT."
-        )
+        yield _sse({"type": "error", "message": "Unsupported file type. Upload PDF or TXT."})
+        return
 
     if not resume_text:
-        raise HTTPException(status_code=400, detail="Could not extract text from file.")
+        yield _sse({"type": "error", "message": "Could not extract text from file."})
+        return
+    yield _sse(_step("extract", status="done"))
 
-    # Step 2: Search portfolio for relevant chunks
-    # Step 2: Search portfolio for relevant chunks
+    yield _sse(_step("rag", "Searching portfolio projects for alignment"))
     qdrant = get_qdrant()
+    chunks = []
     try:
         chunks = await qdrant.search(query=resume_text[:2000], use_case="resume_compare")
     except Exception as e:
         logger.error("Qdrant search failed: %s", e)
-        chunks = []
-
     portfolio_context = format_chunks_for_llm(chunks, max_chars=350)
+    yield _sse(_step("rag", status="done"))
 
-    # Step 3: Use LLM for structured comparison
+    yield _sse(_step("llm", "Scoring match with Gemini"))
     llm = get_flash_llm()
     structured_llm = llm.with_structured_output(ResumeCompareResult)
-
     messages = [
         SystemMessage(content=(
             "You are comparing a candidate's resume against a portfolio of projects. "
@@ -116,17 +119,45 @@ async def compare_resume(
 
     try:
         result: ResumeCompareResult = await structured_llm.ainvoke(messages)
-        return ResumeCompareResponse(
+        payload = ResumeCompareResponse(
             overall_score=result.overall_score,
             matches=result.matches,
             extracted_skills=result.extracted_skills,
             summary=result.summary,
-        )
+        ).model_dump()
     except Exception as e:
         logger.error("Resume comparison LLM failed: %s", e)
-        return ResumeCompareResponse(
+        payload = ResumeCompareResponse(
             overall_score=0.0,
             matches=[],
             extracted_skills=[],
             summary="Comparison failed. Please try again.",
-        )
+        ).model_dump()
+    yield _sse(_step("llm", status="done"))
+    yield _sse({"type": "result", "data": payload})
+
+
+@router.post("/api/resume/compare/stream")
+@limiter.limit("10/minute")
+async def compare_resume_stream(request: Request, file: UploadFile = File(...)):
+    async def event_stream():
+        async for event in _compare_pipeline(file):
+            yield event
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@router.post("/api/resume/compare", response_model=ResumeCompareResponse)
+@limiter.limit("10/minute")
+async def compare_resume(request: Request, file: UploadFile = File(...)):
+    result = None
+    async for event in _compare_pipeline(file):
+        if event.startswith("data: "):
+            payload = json.loads(event[6:].strip())
+            if payload.get("type") == "error":
+                raise HTTPException(status_code=400, detail=payload.get("message", "Error"))
+            if payload.get("type") == "result":
+                result = payload["data"]
+    if not result:
+        raise HTTPException(status_code=500, detail="Comparison failed.")
+    return ResumeCompareResponse(**result)

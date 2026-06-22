@@ -3,11 +3,15 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
+import { api } from '@/lib/api';
+import { applyStepEvent } from '@/lib/thinkingSteps';
+import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
 
 export default function ResumeComparePage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
 
@@ -33,27 +37,20 @@ export default function ResumeComparePage() {
 
     setLoading(true);
     setError('');
-
-    const formData = new FormData();
-    formData.append('file', file);
+    setThinkingSteps([]);
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-7ubimlsttq-el.a.run.app';
-      const response = await fetch(`${backendUrl}/api/resume/compare`, {
-        method: 'POST',
-        body: formData,
+      const data = await api.compareResumeStream(file, (event) => {
+        if (event.type === 'step') {
+          setThinkingSteps((prev) => applyStepEvent(prev, event as Parameters<typeof applyStepEvent>[1]));
+        }
       });
-
-      if (!response.ok) {
-        throw new Error(await response.text() || 'Comparison failed');
-      }
-
-      const data = await response.json();
       setResult(data);
     } catch (err: any) {
       setError(err.message || 'An error occurred during comparison.');
     } finally {
       setLoading(false);
+      setThinkingSteps([]);
     }
   };
 
@@ -108,6 +105,15 @@ export default function ResumeComparePage() {
               <div className="p-4 border border-red-900/50 bg-red-900/10 text-red-500 font-mono text-xs">
                 {error}
               </div>
+            )}
+
+            {loading && thinkingSteps.length > 0 && (
+              <ThinkingPanel
+                steps={thinkingSteps}
+                title="Resume analysis"
+                subtitle="Extract → search → score"
+                defaultCollapsed={false}
+              />
             )}
 
             <button

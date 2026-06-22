@@ -4,11 +4,12 @@ import { useState, useRef, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/usePortfolioStore';
 import { api } from '@/lib/api';
 import { formatResumeCompareMarkdown } from '@/lib/formatResumeCompare';
+import { applyStepEvent } from '@/lib/thinkingSteps';
+import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import type { ChatResponse } from '@/types';
 
 import { MessageCircle, X, FileUp } from 'lucide-react';
 
@@ -32,6 +33,8 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
+  const [streamingContent, setStreamingContent] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -39,7 +42,7 @@ export default function ChatWidget() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading, mode]);
+  }, [messages, loading, mode, thinkingSteps, streamingContent]);
 
   if (!personalization) return null;
 
@@ -50,14 +53,25 @@ export default function ChatWidget() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
+    setThinkingSteps([]);
+    setStreamingContent('');
 
     try {
-      const response: ChatResponse = await api.chat({
-        message: text,
-        session_id: sessionId.current,
-        personalization_id: personalization.personalization_id,
-        visitor_profile: personalization.visitor_profile,
-      });
+      const response = await api.chatStream(
+        {
+          message: text,
+          session_id: sessionId.current,
+          personalization_id: personalization.personalization_id,
+          visitor_profile: personalization.visitor_profile,
+        },
+        (event) => {
+          if (event.type === 'step') {
+            setThinkingSteps((prev) => applyStepEvent(prev, event as Parameters<typeof applyStepEvent>[1]));
+          } else if (event.type === 'token' && typeof event.content === 'string') {
+            setStreamingContent((prev) => prev + event.content);
+          }
+        },
+      );
 
       setMessages((prev) => [
         ...prev,
@@ -78,6 +92,8 @@ export default function ChatWidget() {
       ]);
     } finally {
       setLoading(false);
+      setThinkingSteps([]);
+      setStreamingContent('');
     }
   };
 
@@ -89,11 +105,17 @@ export default function ChatWidget() {
       { role: 'user', content: `[Uploaded resume] ${file.name}` },
     ]);
     setLoading(true);
+    setThinkingSteps([]);
     setResumeFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
 
     try {
-      const result = await api.compareResume(file);
+      const result = await api.compareResumeStream(file, (event) => {
+        if (event.type === 'step') {
+          setThinkingSteps((prev) => applyStepEvent(prev, event as Parameters<typeof applyStepEvent>[1]));
+        }
+      });
+
       const matchProjects = result.matches?.map((m) => ({
         project_id: m.project_id,
         project_title: m.project_title,
@@ -118,6 +140,7 @@ export default function ChatWidget() {
       ]);
     } finally {
       setLoading(false);
+      setThinkingSteps([]);
     }
   };
 
@@ -143,7 +166,7 @@ export default function ChatWidget() {
     setResumeFile(file);
   };
 
-  const loadingLabel = mode === 'resume' ? 'Analyzing resume...' : 'Retrieving context...';
+  const thinkingTitle = mode === 'resume' ? 'Resume analysis' : 'Retrieval pipeline';
 
   return (
     <>
@@ -305,9 +328,26 @@ export default function ChatWidget() {
             ))}
 
             {loading && (
-              <div className="flex justify-start">
-                <div className="bg-foreground/5 border border-foreground/10 p-3 font-mono text-xs text-foreground/50 animate-pulse">
-                  {loadingLabel}
+              <div className="flex justify-start w-full">
+                <div className={`space-y-2 ${isFullScreen ? 'max-w-[70%]' : 'max-w-[85%]'} w-full`}>
+                  {thinkingSteps.length > 0 && (
+                    <ThinkingPanel
+                      steps={thinkingSteps}
+                      title={thinkingTitle}
+                      defaultCollapsed
+                      className="rounded-sm"
+                    />
+                  )}
+                  {streamingContent && mode === 'chat' && (
+                    <div className="bg-foreground/5 border border-foreground/10 p-4">
+                      <div className="prose prose-invert prose-amber max-w-none prose-sm font-mono text-xs prose-p:leading-relaxed">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                          {streamingContent}
+                        </ReactMarkdown>
+                      </div>
+                      <span className="inline-block w-2 h-3 bg-amber-500/80 animate-pulse ml-0.5 align-middle" />
+                    </div>
+                  )}
                 </div>
               </div>
             )}

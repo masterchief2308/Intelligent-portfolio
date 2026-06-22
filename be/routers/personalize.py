@@ -30,7 +30,7 @@ async def personalize(request: Request, personalize_request: PersonalizeRequest)
         logger.info("Cache hit for %s", personalize_request.email)
         
         async def cache_stream():
-            yield f"data: {json.dumps({'status': 'Cache hit. Loading blueprints...'})}\n\n"
+            yield f"data: {json.dumps({'type': 'step', 'id': 'cache', 'label': 'Cache hit. Loading blueprints...', 'status': 'done'})}\n\n"
             
             payload = {
                 "result": {

@@ -6,6 +6,8 @@ import { usePortfolioStore } from '@/store/usePortfolioStore';
 import { useHydrateSession } from '@/hooks/useHydrateSession';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { api } from '@/lib/api';
+import { applyStepEvent } from '@/lib/thinkingSteps';
+import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
 import { motion } from 'framer-motion';
 import type { FeaturedProject } from '@/types';
 import React from 'react';
@@ -18,7 +20,7 @@ export default function Home() {
   const [role, setRole] = useState("hiring");
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadingMessages, setLoadingMessages] = useState<string[]>([]);
+  const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const [apiCalls, setApiCalls] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
@@ -28,7 +30,13 @@ export default function Home() {
     if (!email) return;
 
     setLoading(true);
-    setLoadingMessages(["INITIALIZING: Establishing secure uplink to LangGraph engine..."]);
+    setThinkingSteps([
+      {
+        id: 'init',
+        label: 'Establishing secure uplink to LangGraph engine...',
+        status: 'running',
+      },
+    ]);
     setApiCalls(0);
     setError(null);
     
@@ -67,8 +75,21 @@ export default function Home() {
                 if (parsed.error) {
                   throw new Error(parsed.error);
                 }
-                if (parsed.status) {
-                  setLoadingMessages(prev => [...prev, parsed.status]);
+                if (parsed.type === 'step') {
+                  setThinkingSteps((prev) => {
+                    const withoutInit =
+                      parsed.id !== 'cache' && prev.length === 1 && prev[0].id === 'init'
+                        ? prev.map((s) => ({ ...s, status: 'done' as const }))
+                        : prev;
+                    return applyStepEvent(withoutInit, parsed);
+                  });
+                } else if (parsed.status) {
+                  setThinkingSteps((prev) => [
+                    ...prev.map((s) =>
+                      s.status === 'running' ? { ...s, status: 'done' as const } : s,
+                    ),
+                    { id: `legacy-${prev.length}`, label: parsed.status, status: 'running' },
+                  ]);
                 }
                 if (parsed.api_calls !== undefined) {
                   setApiCalls(parsed.api_calls);
@@ -252,33 +273,16 @@ export default function Home() {
         {(loading || personalization) && (
           <section className="relative border-t border-foreground/10 pt-16">
             {loading && (
-              <div className="absolute inset-0 z-50 flex flex-col items-center justify-start pt-32">
-                <div className="bg-background text-foreground px-6 py-6 font-mono text-sm uppercase tracking-widest border border-amber-500/50 flex flex-col gap-6 shadow-[0_0_20px_rgba(245,158,11,0.2)] max-w-lg w-full">
-                  <div className="flex items-center gap-4 border-b border-foreground/10 pb-4 justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-amber-500 font-bold">PIPELINE ACTIVE</span>
-                    </div>
-                    <span className="text-amber-500/60 font-mono text-[10px] font-bold">[API CALLS: {apiCalls}/5]</span>
-                  </div>
-                  <div className="flex flex-col gap-3 min-h-[160px]">
-                    {loadingMessages.map((msg, idx) => (
-                      <div
-                        key={idx}
-                        className={`text-xs transition-all duration-500 ${
-                            idx === loadingMessages.length - 1 ? "text-amber-500 animate-pulse font-bold" :
-                              "text-amber-500/40"
-                          }`}
-                      >
-                        [{String(idx + 1).padStart(2, '0')}] {msg}
-                      </div>
-                    ))}
-                    {loadingMessages.length > 0 && (
-                      <div className="text-xs text-amber-500 animate-pulse font-bold mt-2">
-                        [{String(loadingMessages.length + 1).padStart(2, '0')}] Processing...
-                      </div>
-                    )}
-                  </div>
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-start pt-32 px-4">
+                <div className="max-w-lg w-full">
+                  <ThinkingPanel
+                    steps={thinkingSteps}
+                    title="Pipeline active"
+                    subtitle="LangGraph agents running in sequence"
+                    apiCalls={apiCalls}
+                    maxApiCalls={5}
+                    defaultCollapsed={false}
+                  />
                 </div>
               </div>
             )}

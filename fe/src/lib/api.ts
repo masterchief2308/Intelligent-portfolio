@@ -12,6 +12,7 @@ import type {
   AnalyticsDashboard,
   Project,
 } from '@/types';
+import { consumeSseStream, type SseHandler } from '@/lib/sseClient';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-7ubimlsttq-el.a.run.app';
 
@@ -86,6 +87,30 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  chatStream: async (data: ChatRequest, onEvent: SseHandler): Promise<ChatResponse> => {
+    const res = await fetch(`${BASE}/api/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      throw new Error(`Chat stream failed (${res.status})`);
+    }
+
+    let result: ChatResponse | null = null;
+    await consumeSseStream(res, (event) => {
+      onEvent(event);
+      if (event.type === 'result' && event.data) {
+        result = event.data as ChatResponse;
+      }
+    });
+
+    if (!result) {
+      throw new Error('Chat stream ended without a response');
+    }
+    return result;
+  },
+
   compareResume: async (file: File): Promise<ResumeCompareResponse> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -98,6 +123,38 @@ export const api = {
       throw new Error(detail || `Comparison failed (${res.status})`);
     }
     return res.json();
+  },
+
+  compareResumeStream: async (
+    file: File,
+    onEvent: SseHandler,
+  ): Promise<ResumeCompareResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${BASE}/api/resume/compare/stream`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(detail || `Comparison failed (${res.status})`);
+    }
+
+    let result: ResumeCompareResponse | null = null;
+    await consumeSseStream(res, (event) => {
+      onEvent(event);
+      if (event.type === 'error') {
+        throw new Error(String(event.message || 'Comparison failed'));
+      }
+      if (event.type === 'result' && event.data) {
+        result = event.data as ResumeCompareResponse;
+      }
+    });
+
+    if (!result) {
+      throw new Error('Comparison stream ended without a result');
+    }
+    return result;
   },
 
   getResumePdf: () => `${BASE}/api/resume/pdf`,
