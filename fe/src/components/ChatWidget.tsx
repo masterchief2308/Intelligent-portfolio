@@ -281,40 +281,7 @@ export default function ChatWidget() {
                     </div>
                   )}
 
-                  {msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-3 pt-2 border-t border-foreground/10 space-y-1">
-                      {msg.sources.map((s, j) => (
-                        <Link
-                          key={j}
-                          href={`/projects/${s.project}`}
-                          className="flex items-center gap-2 p-2 rounded hover:bg-white/5 border border-white/5 transition-colors group"
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-amber-500/50 group-hover:bg-amber-400" />
-                          <span className="font-mono text-[10px] text-white/70 uppercase tracking-widest truncate group-hover:text-white">
-                            {s.title || "View Blueprint"}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-
-                  {msg.matchProjects && msg.matchProjects.length > 0 && (
-                    <div className="mt-3 pt-2 border-t border-foreground/10 space-y-1">
-                      {msg.matchProjects.map((m, j) => (
-                        <Link
-                          key={j}
-                          href={`/projects/${m.project_id}`}
-                          className="flex items-center gap-2 p-2 rounded hover:bg-white/5 border border-white/5 transition-colors group"
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-amber-500/50 group-hover:bg-amber-400" />
-                          <span className="font-mono text-[10px] text-white/70 uppercase tracking-widest truncate group-hover:text-white">
-                            {m.project_title}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-
+                  {/* Removed selectable project links (sources and matchProjects) per user request. Details are now integrated directly into the LLM text response. */}
                   {msg.followups && msg.followups.length > 0 && (
                     <div className="mt-3 pt-2 border-t border-foreground/10 flex flex-wrap gap-1">
                       {msg.followups.map((f, j) => (
