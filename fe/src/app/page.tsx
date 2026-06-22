@@ -8,7 +8,7 @@ import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { api } from '@/lib/api';
 import { applyStepEvent } from '@/lib/thinkingSteps';
 import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { FeaturedProject } from '@/types';
 import React from 'react';
 
@@ -240,12 +240,6 @@ export default function Home() {
                   >
                     {loading ? "COMPILING PROFILE..." : "EXECUTE_ →"}
                   </button>
-                  {error && (
-                    <div className="mt-4 p-4 border border-red-500 bg-red-500/10 text-red-500 font-mono text-xs uppercase tracking-widest">
-                      [BACKEND CAUGHT IN ERROR]<br />
-                      {error}
-                    </div>
-                  )}
                 </form>
               </div>
             </motion.div>
@@ -272,23 +266,8 @@ export default function Home() {
 
         {(loading || personalization) && (
           <section className="relative border-t border-foreground/10 pt-16">
-            {loading && (
-              <div className="absolute inset-0 z-50 flex flex-col items-center justify-start pt-32 px-4">
-                <div className="max-w-lg w-full">
-                  <ThinkingPanel
-                    steps={thinkingSteps}
-                    title="Pipeline active"
-                    subtitle="LangGraph agents running in sequence"
-                    apiCalls={apiCalls}
-                    maxApiCalls={5}
-                    defaultCollapsed={false}
-                  />
-                </div>
-              </div>
-            )}
-
             {personalization && (
-              <div className={`transition-all duration-500 ${loading ? 'opacity-20 blur-md pointer-events-none' : 'opacity-100'}`}>
+              <div className="transition-all duration-500 opacity-100">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-16 gap-4">
                   <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Index: Production Systems</h2>
 
@@ -359,6 +338,50 @@ export default function Home() {
           </section>
         )}
       </main>
+
+      <AnimatePresence>
+        {(loading || (error && thinkingSteps.length > 0)) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="max-w-lg w-full flex flex-col gap-4 shadow-2xl"
+            >
+              <ThinkingPanel
+                steps={thinkingSteps}
+                title={error ? "Pipeline Error" : "Pipeline active"}
+                subtitle={error ? "Process interrupted." : "LangGraph agents running in sequence"}
+                apiCalls={apiCalls}
+                maxApiCalls={5}
+                defaultCollapsed={false}
+              />
+              {error && (
+                <div className="p-4 border border-red-500 bg-red-500/10 text-red-500 font-mono text-xs uppercase tracking-widest flex justify-between items-start gap-4 shadow-lg">
+                  <div>
+                    <span className="font-bold block mb-2">[BACKEND CAUGHT IN ERROR]</span>
+                    {error}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setError(null);
+                      setThinkingSteps([]);
+                    }}
+                    className="px-3 py-1 bg-red-500 text-black hover:bg-red-400 transition-colors font-bold"
+                  >
+                    CLOSE
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

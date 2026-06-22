@@ -162,7 +162,7 @@ def load_portfolio_chunks(portfolio_path: Path | None = None) -> list[dict[str, 
     return build_portfolio_chunks(portfolio)
 
 
-def format_chunks_for_llm(chunks: list[dict[str, Any]], max_chars: int = 400) -> str:
+def format_chunks_for_llm(chunks: list[dict[str, Any]], max_chars: int = 600) -> str:
     """Group retrieved chunks by project for clearer LLM context."""
     if not chunks:
         return "No portfolio evidence retrieved."

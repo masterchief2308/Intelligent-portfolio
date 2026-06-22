@@ -171,7 +171,52 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
     try:
         chain = build_dynamic_chain_with_fallbacks(WebsiteConfigOutput, configs)
         result: WebsiteConfigOutput = await chain.ainvoke({})
-        state["website_config"] = result.model_dump()
+        config = result.model_dump()
+
+        # ── Post-processing: validate project IDs ────────────────
+        valid_ids = set(project_ids)
+        original_projects = config.get("featured_projects", [])
+        validated_projects = [
+            p for p in original_projects if p.get("id") in valid_ids
+        ]
+
+        if len(validated_projects) < len(original_projects):
+            rejected = [p.get("id") for p in original_projects if p.get("id") not in valid_ids]
+            logger.warning(
+                "Personalizer hallucinated %d invalid project IDs: %s — removed them",
+                len(rejected), rejected,
+            )
+
+        if not validated_projects:
+            # Every project ID was hallucinated → use fallback config entirely
+            logger.error("All project IDs hallucinated, falling back to hardcoded config")
+            state["website_config"] = _fallback_config(visitor_profile)
+            return state
+
+        # Back-fill any missing valid projects so the visitor sees all of them
+        seen_ids = {p["id"] for p in validated_projects}
+        missing_ids = valid_ids - seen_ids
+        if missing_ids:
+            # Load portfolio.json for the missing project data
+            data_path = Path(__file__).parent.parent / "data" / "portfolio.json"
+            try:
+                portfolio = json.loads(data_path.read_text(encoding="utf-8"))
+                for proj in portfolio.get("projects", []):
+                    if proj["id"] in missing_ids:
+                        validated_projects.append({
+                            "id": proj["id"],
+                            "title": proj.get("title", proj["id"]),
+                            "highlight": proj.get("context", "")[:120],
+                            "metric": proj.get("metric", "N/A"),
+                            "metrics": [proj.get("metric", "")] if proj.get("metric") else [],
+                            "why_relevant": proj.get("context", "Relevant to your background."),
+                        })
+                logger.info("Back-filled %d missing project(s): %s", len(missing_ids), missing_ids)
+            except Exception as bf_err:
+                logger.warning("Could not back-fill missing projects: %s", bf_err)
+
+        config["featured_projects"] = validated_projects
+        state["website_config"] = config
         logger.info("Personalization generated for %s", visitor_profile.get("email", "unknown"))
     except Exception as e:
         logger.error("Personalizer failed: %s", e)
