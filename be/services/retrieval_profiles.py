@@ -47,7 +47,7 @@ PROFILES: dict[RetrievalUseCase, RetrievalProfile] = {
         top_k=10,
         fetch_k=30,
         max_per_project=4,
-        doc_type="project",
+        doc_type=None,  # format_chunks_for_llm already filters projects, avoiding Qdrant query_filter bugs
     ),
     # Recruiter: wide candidate search across resume pool
     "recruiter_match": RetrievalProfile(
