@@ -22,7 +22,6 @@ from routers.portfolio import router as portfolio_router
 from routers.personalize import router as personalize_router
 from routers.chat import router as chat_router
 from routers.architecture import router as architecture_router
-from routers.resume import router as resume_router
 from routers.analytics import router as analytics_router
 from routers.admin import router as admin_router
 from routers.resume_compare import router as resume_compare_router
@@ -124,7 +123,6 @@ app.include_router(chat_router, tags=["Chat"])
 
 
 app.include_router(architecture_router, tags=["Architecture"])
-app.include_router(resume_router, tags=["Resume"])
 app.include_router(analytics_router, tags=["Analytics"])
 app.include_router(admin_router, tags=["Admin"])
 app.include_router(resume_compare_router, tags=["Resume Compare"])
