@@ -26,7 +26,7 @@ interface Message {
 const ACCEPTED_RESUME = '.pdf,.txt,application/pdf,text/plain';
 
 export default function ChatWidget() {
-  const { personalization } = usePortfolioStore();
+  const { personalization, setIsStreamingLLM } = usePortfolioStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [mode, setMode] = useState<ChatMode>('chat');
@@ -53,6 +53,7 @@ export default function ChatWidget() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
+    setIsStreamingLLM(true);
     setThinkingSteps([]);
     setStreamingContent('');
 
@@ -92,6 +93,7 @@ export default function ChatWidget() {
       ]);
     } finally {
       setLoading(false);
+      setIsStreamingLLM(false);
       setThinkingSteps([]);
       setStreamingContent('');
     }
@@ -105,6 +107,7 @@ export default function ChatWidget() {
       { role: 'user', content: `[Uploaded resume] ${file.name}` },
     ]);
     setLoading(true);
+    setIsStreamingLLM(true);
     setThinkingSteps([]);
     setResumeFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -141,6 +144,7 @@ export default function ChatWidget() {
       ]);
     } finally {
       setLoading(false);
+      setIsStreamingLLM(false);
       setThinkingSteps([]);
     }
   };

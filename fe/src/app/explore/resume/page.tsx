@@ -6,9 +6,11 @@ import { useDropzone } from 'react-dropzone';
 import { api } from '@/lib/api';
 import { applyStepEvent } from '@/lib/thinkingSteps';
 import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
+import { usePortfolioStore } from '@/store/usePortfolioStore';
 
 export default function ResumeComparePage() {
   const router = useRouter();
+  const setIsStreamingLLM = usePortfolioStore((state) => state.setIsStreamingLLM);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
@@ -36,6 +38,7 @@ export default function ResumeComparePage() {
     if (!file) return;
 
     setLoading(true);
+    setIsStreamingLLM(true);
     setError('');
     setThinkingSteps([]);
 
@@ -50,6 +53,7 @@ export default function ResumeComparePage() {
       setError(err.message || 'An error occurred during comparison.');
     } finally {
       setLoading(false);
+      setIsStreamingLLM(false);
       setThinkingSteps([]);
     }
   };

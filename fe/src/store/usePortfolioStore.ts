@@ -10,6 +10,8 @@ interface PortfolioState {
   setAdminToken: (token: string | null) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  isStreamingLLM: boolean;
+  setIsStreamingLLM: (streaming: boolean) => void;
 }
 
 export const usePortfolioStore = create<PortfolioState>((set) => ({
@@ -21,4 +23,6 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
   setAdminToken: (token) => set({ adminToken: token }),
   isLoading: false,
   setIsLoading: (loading) => set({ isLoading: loading }),
+  isStreamingLLM: false,
+  setIsStreamingLLM: (streaming) => set({ isStreamingLLM: streaming }),
 }));

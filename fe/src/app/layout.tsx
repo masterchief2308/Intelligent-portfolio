@@ -7,6 +7,7 @@ import QueryProvider from "@/providers/QueryProvider";
 import ChatWidget from "@/components/ChatWidget";
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { getQueryClient } from "@/lib/getQueryClient";
+import GlobalStreamingOverlay from "@/components/GlobalStreamingOverlay";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} relative min-h-screen bg-background text-foreground antialiased selection:bg-foreground selection:text-background`}>
+        <GlobalStreamingOverlay />
         <BlueprintCanvas />
         
         <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_50%_-20%,_rgba(255,160,50,0.15),_transparent_80%)] z-[-1]" />

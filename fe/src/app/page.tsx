@@ -15,6 +15,7 @@ import React from 'react';
 export default function Home() {
   const { mounted, personalization, setPersonalization } = useHydrateSession();
   const { data: portfolio } = usePortfolioData();
+  const setIsStreamingLLM = usePortfolioStore((state) => state.setIsStreamingLLM);
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("hiring");
@@ -30,6 +31,7 @@ export default function Home() {
     if (!email) return;
 
     setLoading(true);
+    setIsStreamingLLM(true);
     setThinkingSteps([
       {
         id: 'init',
@@ -135,6 +137,7 @@ export default function Home() {
       setError(err.message || "Unknown error occurred");
     } finally {
       setLoading(false);
+      setIsStreamingLLM(false);
     }
   }
 
