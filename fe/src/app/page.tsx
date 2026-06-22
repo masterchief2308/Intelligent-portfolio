@@ -319,7 +319,7 @@ export default function Home() {
                       <div className="flex items-end justify-between border-t border-foreground/10 pt-8 mt-auto">
                         <div>
                           <div className="font-mono text-xs uppercase tracking-widest text-foreground bg-amber-500/20 px-3 py-1 mb-2 w-fit">
-                            [██████░░░] 80%
+                            {project.metric ? `> ${project.metric}` : '[ SYSTEM METRIC UNAVAILABLE ]'}
                           </div>
                           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground block group-hover:text-foreground transition-colors">
                             Click to Compile Architecture →
