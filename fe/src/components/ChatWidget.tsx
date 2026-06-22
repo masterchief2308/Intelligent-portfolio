@@ -18,7 +18,7 @@ type ChatMode = 'chat' | 'resume';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  sources?: { project: string; section: string }[];
+  sources?: { project: string; section: string; title?: string }[];
   followups?: string[];
   matchProjects?: { project_id: string; project_title: string }[];
 }
@@ -286,7 +286,7 @@ export default function ChatWidget() {
                         >
                           <div className="w-1.5 h-1.5 rounded-full bg-amber-500/50 group-hover:bg-amber-400" />
                           <span className="font-mono text-[10px] text-white/70 uppercase tracking-widest truncate group-hover:text-white">
-                            View Blueprint
+                            {s.title || "View Blueprint"}
                           </span>
                         </Link>
                       ))}

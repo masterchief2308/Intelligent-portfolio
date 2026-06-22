@@ -40,10 +40,15 @@ def _build_sources(chunks: list) -> list[dict]:
     sources = []
     seen = set()
     for chunk in chunks:
-        slug = chunk.get("project_slug") or chunk.get("doc_id")
-        section = chunk.get("section") or chunk.get("doc_type", "")
+        # Only link to actual projects to avoid 404s on /projects/[slug]
+        if chunk.get("doc_type") != "project":
+            continue
+            
+        slug = chunk.get("project_slug")
+        section = chunk.get("section")
+        title = chunk.get("project_title") or slug
         if slug and (slug, section) not in seen:
-            sources.append({"project": slug, "section": section})
+            sources.append({"project": slug, "section": section, "title": title})
             seen.add((slug, section))
     return sources[:3]
 
@@ -183,12 +188,13 @@ async def _run_chat_pipeline(request: ChatRequest, stream_tokens: bool = False) 
     # Parse follow-up suggestions from the response
     followups: list[str] = []
     clean_response = response_text
-    followup_match = re.search(r'\[FOLLOWUPS\]\s*\n((?:\s*-\s*.+\n?)+)', response_text, re.IGNORECASE)
+    followup_match = re.search(r'\[FOLLOWUPS\][\s:]*\n?(.*)', response_text, re.IGNORECASE | re.DOTALL)
     if followup_match:
         clean_response = response_text[:followup_match.start()].rstrip()
         for line in followup_match.group(1).strip().split('\n'):
-            q = re.sub(r'^\s*-\s*', '', line).strip()
-            if q:
+            # Strip leading bullets, numbers, hyphens
+            q = re.sub(r'^[\s\-\*\d\.]+(.*)', r'\1', line).strip()
+            if q and len(q) > 3:
                 followups.append(q)
 
     await firestore.save_chat_message(session_id, "assistant", clean_response)
