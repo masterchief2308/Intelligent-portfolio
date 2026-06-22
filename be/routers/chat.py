@@ -47,9 +47,9 @@ def _build_sources(chunks: list) -> list[dict]:
         slug = chunk.get("project_slug")
         section = chunk.get("section")
         title = chunk.get("project_title") or slug
-        if slug and (slug, section) not in seen:
+        if slug and slug not in seen:
             sources.append({"project": slug, "section": section, "title": title})
-            seen.add((slug, section))
+            seen.add(slug)
     return sources[:3]
 
 
