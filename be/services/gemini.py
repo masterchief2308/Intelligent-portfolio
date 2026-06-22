@@ -37,43 +37,55 @@ class FallbackLLMWrapper:
         return getattr(self.primary, name)
 
 
-def _get_llm_with_fallbacks(model_name: str, temperature: float = 0.7) -> FallbackLLMWrapper:
+def _get_llm_with_fallbacks(
+    model_name: str,
+    temperature: float = 0.7,
+    top_p: float | None = None,
+    top_k: int | None = None,
+) -> FallbackLLMWrapper:
     settings = get_settings()
     
-    primary = ChatGoogleGenerativeAI(
-        model=model_name,
-        api_key=settings.GEMINI_API_KEY,
-        temperature=temperature,
-        max_retries=2, # Fail fast so we can bounce to the fallback key
-    )
+    kwargs: dict[str, Any] = {
+        "model": model_name,
+        "api_key": settings.GEMINI_API_KEY,
+        "temperature": temperature,
+        "max_retries": 2, # Fail fast so we can bounce to the fallback key
+    }
+    if top_p is not None:
+        kwargs["top_p"] = top_p
+    if top_k is not None:
+        kwargs["top_k"] = top_k
+        
+    primary = ChatGoogleGenerativeAI(**kwargs)
     fallbacks = []
+    
     if settings.GEMINI_API_KEY_FALLBACK:
-        fallbacks.append(ChatGoogleGenerativeAI(
-            model=model_name,
-            api_key=settings.GEMINI_API_KEY_FALLBACK,
-            temperature=temperature,
-            max_retries=2,
-        ))
+        fb_kwargs = {**kwargs, "api_key": settings.GEMINI_API_KEY_FALLBACK}
+        fallbacks.append(ChatGoogleGenerativeAI(**fb_kwargs))
         
     if getattr(settings, "GEMINI_API_KEY_FALLBACK_2", ""):
-        fallbacks.append(ChatGoogleGenerativeAI(
-            model=model_name,
-            api_key=settings.GEMINI_API_KEY_FALLBACK_2,
-            temperature=temperature,
-            max_retries=2,
-        ))
+        fb2_kwargs = {**kwargs, "api_key": settings.GEMINI_API_KEY_FALLBACK_2}
+        fallbacks.append(ChatGoogleGenerativeAI(**fb2_kwargs))
         
     return FallbackLLMWrapper(primary, fallbacks)
 
 
-def get_flash_llm(temperature: float = 0.7) -> FallbackLLMWrapper:
+def get_flash_llm(
+    temperature: float = 0.7,
+    top_p: float | None = None,
+    top_k: int | None = None,
+) -> FallbackLLMWrapper:
     """Gemini 2.5 Flash — fast + cheap. Used for planning, parsing, validation, chat."""
-    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature)
+    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature, top_p, top_k)
 
 
-def get_pro_llm(temperature: float = 0.7) -> FallbackLLMWrapper:
+def get_pro_llm(
+    temperature: float = 0.7,
+    top_p: float | None = None,
+    top_k: int | None = None,
+) -> FallbackLLMWrapper:
     """Originally Gemini 2.5 Pro — but Google Free Tier sets limit to 0. Downgraded to Flash."""
-    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature)
+    return _get_llm_with_fallbacks(PRIMARY_MODEL, temperature, top_p, top_k)
 
 
 from langchain_core.prompts import ChatPromptTemplate

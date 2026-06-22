@@ -196,7 +196,7 @@ async def _match_pipeline(job_description: str) -> AsyncIterator[str]:
 
     # Step 3: LLM ranking
     yield _sse(_step("rank", f"Ranking {len(candidates_context)} candidates with Gemini"))
-    llm = get_flash_llm()
+    llm = get_flash_llm(temperature=0.0, top_p=0.9, top_k=40)
     structured_llm = llm.with_structured_output(JDMatchResult)
 
     messages = [
