@@ -6,9 +6,9 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from fastapi import APIRouter
 
 from models.schemas import ChatRequest, ChatResponse
-from services.gemini import get_flash_llm
 from services.firestore import get_firestore
-from mcp_tools.tools import search_portfolio
+from services.qdrant import get_qdrant
+from services.portfolio_chunks import format_chunks_for_llm
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -57,11 +57,16 @@ async def chat(request: ChatRequest):
                 f"Featured projects shown: {featured}"
             )
 
-    # Step 4: Retrieve portfolio chunks using the LangChain tool
+    # Step 4: Hybrid RAG retrieval (project-diversified)
+    chunks: list = []
     try:
-        portfolio_context = await search_portfolio.ainvoke(
-            {"query": request.message, "top_k": 5}
+        qdrant = get_qdrant()
+        chunks = await qdrant.search(
+            query=request.message,
+            use_case="chat",
+            project_slug=request.project_slug,
         )
+        portfolio_context = format_chunks_for_llm(chunks)
     except Exception as e:
         logger.warning("Portfolio search failed: %s", e)
         portfolio_context = "Portfolio search unavailable."
@@ -147,18 +152,15 @@ async def chat(request: ChatRequest):
     # Step 7: Save assistant response to history
     await firestore.save_chat_message(session_id, "assistant", response_text)
 
-    # Extract sources from portfolio context
+    # Extract sources from retrieved chunks
     sources = []
-    if "portfolio" in portfolio_context.lower() and ":" in portfolio_context:
-        for line in portfolio_context.split("\n"):
-            if ":" in line and "[" in line:
-                try:
-                    doc_part = line.split("]")[0].split("[")[-1]
-                    if ":" in doc_part:
-                        doc_type, doc_id = doc_part.split(":", 1)
-                        sources.append({"project": doc_id.strip(), "section": doc_type.strip()})
-                except (IndexError, ValueError):
-                    pass
+    seen = set()
+    for chunk in chunks:
+        slug = chunk.get("project_slug") or chunk.get("doc_id")
+        section = chunk.get("section") or chunk.get("doc_type", "")
+        if slug and (slug, section) not in seen:
+            sources.append({"project": slug, "section": section})
+            seen.add((slug, section))
 
     return ChatResponse(
         response=response_text,

@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     QDRANT_URL: str = "http://qdrant:6333"
     QDRANT_API_KEY: str = ""
     QDRANT_COLLECTION: str = "portfolio"
+    # Override defaults for the "default" retrieval profile only (see retrieval_profiles.py)
+    QDRANT_TOP_K: int = 8
+    QDRANT_FETCH_K: int = 24
+    QDRANT_SCORE_THRESHOLD: float = 0.0
+    QDRANT_MAX_CHUNKS_PER_PROJECT: int = 2
 
     # Admin
     ADMIN_PASSPHRASE: str = "admin_dev_2026"

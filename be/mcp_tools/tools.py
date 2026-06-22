@@ -8,6 +8,7 @@ from langchain_core.tools import tool
 from services.scraper import get_scraper
 from services.qdrant import get_qdrant
 from services.firestore import get_firestore
+from services.portfolio_chunks import format_chunks_for_llm
 
 
 # ── Scraping Tools ───────────────────────────────────────────────
@@ -60,27 +61,28 @@ async def discover_links_tool(domain: str) -> str:
 # ── Portfolio RAG Tools ──────────────────────────────────────────
 
 @tool
-async def search_portfolio(query: str, top_k: int = 5) -> str:
+async def search_portfolio(
+    query: str,
+    top_k: int | None = None,
+    project_slug: str | None = None,
+) -> str:
     """Search the portfolio vector database for relevant projects, skills,
-    and experience. Use this to find portfolio evidence that matches a
-    visitor's background or interests.
-    Returns ranked chunks with relevance scores.
+    and experience. Uses hybrid dense+BM25 retrieval with project-wise diversification.
+    Optionally filter to a single project via project_slug.
+    Returns ranked chunks grouped by project with relevance scores.
     """
     qdrant = get_qdrant()
-    chunks = await qdrant.search(query=query, top_k=top_k)
+    chunks = await qdrant.search(
+        query=query,
+        use_case="tool",
+        top_k=top_k,
+        project_slug=project_slug,
+    )
 
     if not chunks:
         return "No portfolio chunks found. Qdrant may not be available or the collection is empty."
 
-    result_lines = []
-    for i, chunk in enumerate(chunks, 1):
-        result_lines.append(
-            f"[{i}] (score: {chunk['score']:.3f}) "
-            f"[{chunk['doc_type']}:{chunk['doc_id']}]\n"
-            f"{chunk['text'][:500]}"
-        )
-
-    return "\n\n".join(result_lines)
+    return format_chunks_for_llm(chunks)
 
 
 # ── Firestore Cache Tools ────────────────────────────────────────

@@ -90,6 +90,10 @@ class ChatRequest(BaseModel):
     personalization_id: str
     visitor_profile: Optional[VisitorProfile] = None
     website_config: Optional[WebsiteConfig] = None
+    project_slug: Optional[str] = Field(
+        default=None,
+        description="Optional project slug to scope RAG retrieval (e.g. iocl-tender-evaluation)",
+    )
 
 
 class ChatSource(BaseModel):

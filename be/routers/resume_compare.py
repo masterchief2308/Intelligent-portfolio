@@ -8,6 +8,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from services.qdrant import get_qdrant
+from services.portfolio_chunks import format_chunks_for_llm
 from services.gemini import get_flash_llm
 from langchain_core.messages import SystemMessage, HumanMessage
 
@@ -84,17 +85,15 @@ async def compare_resume(
         raise HTTPException(status_code=400, detail="Could not extract text from file.")
 
     # Step 2: Search portfolio for relevant chunks
+    # Step 2: Search portfolio for relevant chunks
     qdrant = get_qdrant()
     try:
-        chunks = await qdrant.search(query=resume_text[:2000], top_k=10)
+        chunks = await qdrant.search(query=resume_text[:2000], use_case="resume_compare")
     except Exception as e:
         logger.error("Qdrant search failed: %s", e)
         chunks = []
 
-    portfolio_context = "\n".join(
-        f"- [{c.get('doc_type', '')}:{c.get('doc_id', '')}] {c.get('text', '')[:300]}"
-        for c in chunks
-    ) or "No portfolio data available."
+    portfolio_context = format_chunks_for_llm(chunks, max_chars=350)
 
     # Step 3: Use LLM for structured comparison
     llm = get_flash_llm()

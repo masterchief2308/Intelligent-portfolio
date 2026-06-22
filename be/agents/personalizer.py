@@ -13,6 +13,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from models.state import PersonalizationState
 from services.gemini import get_flash_llm
+from services.portfolio_chunks import format_chunks_for_llm
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +82,7 @@ async def personalizer(state: PersonalizationState) -> PersonalizationState:
     validation_score = state.get("validation_score", 0.5)
 
     # Build portfolio evidence string
-    portfolio_evidence = "\n".join(
-        f"- [{chunk.get('doc_type', 'unknown')}:{chunk.get('doc_id', '')}] "
-        f"{chunk.get('text', '')[:300]}"
-        for chunk in portfolio_chunks
-    ) or "No specific portfolio chunks retrieved."
+    portfolio_evidence = format_chunks_for_llm(portfolio_chunks, max_chars=300)
 
     # Build company context (reduce if low confidence)
     if validation_score >= 0.5:

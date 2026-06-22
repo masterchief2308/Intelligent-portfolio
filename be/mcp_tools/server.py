@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from mcp.server.fastmcp import FastMCP
 from services.scraper import get_scraper
 from services.qdrant import get_qdrant
+from services.portfolio_chunks import format_chunks_for_llm
 from services.firestore import get_firestore
 
 # Initialize MCP server
@@ -59,25 +60,22 @@ async def scrape_company(domain: str) -> str:
 # ── Portfolio RAG Tools ──────────────────────────────────────────
 
 @mcp.tool()
-async def search_portfolio(query: str, top_k: int = 5) -> str:
-    """Search the portfolio vector database for relevant projects, skills,
-    and experience matching the query. Returns ranked results with scores.
+async def search_portfolio(query: str, top_k: int | None = None, project_slug: str | None = None) -> str:
+    """Hybrid search over portfolio projects, skills, and experience.
+    Results are diversified by project to avoid mixed-context retrieval.
     """
     qdrant = get_qdrant()
-    chunks = await qdrant.search(query=query, top_k=top_k)
+    chunks = await qdrant.search(
+        query=query,
+        use_case="tool",
+        top_k=top_k,
+        project_slug=project_slug,
+    )
 
     if not chunks:
         return "No portfolio chunks found."
 
-    result_lines = []
-    for i, chunk in enumerate(chunks, 1):
-        result_lines.append(
-            f"[{i}] (score: {chunk['score']:.3f}) "
-            f"[{chunk['doc_type']}:{chunk['doc_id']}]\n"
-            f"{chunk['text'][:500]}"
-        )
-
-    return "\n\n".join(result_lines)
+    return format_chunks_for_llm(chunks)
 
 
 # ── Firestore Cache Tools ────────────────────────────────────────
