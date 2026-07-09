@@ -3,6 +3,7 @@ FastAPI application entrypoint for the Intelligent Portfolio backend.
 Provides all REST API routes with rate limiting and security hardening.
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -72,12 +73,18 @@ async def lifespan(app: FastAPI):
     qdrant.ensure_collection()
     qdrant.ensure_resume_pool_collection()
 
-    # Purge expired resumes on startup
-    try:
-        qdrant.purge_expired_resumes(ttl_hours=settings.RESUME_POOL_TTL_HOURS)
-        logger.info("Startup: purged expired resumes (TTL=%dh)", settings.RESUME_POOL_TTL_HOURS)
-    except Exception as e:
-        logger.warning("Startup resume purge failed: %s", e)
+    # Non-blocking TTL purge — don't delay readiness
+    async def _purge_expired_resumes() -> None:
+        try:
+            await asyncio.to_thread(
+                qdrant.purge_expired_resumes,
+                ttl_hours=settings.RESUME_POOL_TTL_HOURS,
+            )
+            logger.info("Purged expired resumes (TTL=%dh)", settings.RESUME_POOL_TTL_HOURS)
+        except Exception as e:
+            logger.warning("Resume purge failed: %s", e)
+
+    asyncio.create_task(_purge_expired_resumes())
 
     yield
 
@@ -141,5 +148,18 @@ app.include_router(recruiter_router, tags=["Recruiter"])
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """Simple health check endpoint."""
+    """Liveness probe — process is up."""
     return {"status": "ok", "version": get_settings().BACKEND_VERSION}
+
+
+@app.get("/ready", tags=["Health"])
+async def readiness_check():
+    """Readiness probe — embeddings loaded and Qdrant client initialized."""
+    settings = get_settings()
+    qdrant = get_qdrant(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY)
+    if not qdrant.is_ready():
+        return JSONResponse(
+            status_code=503,
+            content={"status": "warming", "version": settings.BACKEND_VERSION},
+        )
+    return {"status": "ready", "version": settings.BACKEND_VERSION}

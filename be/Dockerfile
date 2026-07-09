@@ -9,11 +9,20 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Embedding model cache — baked into the image (avoids HF downloads on cold start)
+ENV HF_HOME=/app/.cache/huggingface
+ENV FASTEMBED_CACHE_PATH=/app/.cache/fastembed
+ENV HF_HUB_DISABLE_TELEMETRY=1
+
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
 # Install Python dependencies quietly to prevent massive logs
 RUN pip install --no-cache-dir -q --progress-bar off -r requirements.txt
+
+# Pre-download hybrid retrieval models (MiniLM + BM25) at build time
+COPY scripts/warmup_embed_models.py scripts/warmup_embed_models.py
+RUN python scripts/warmup_embed_models.py
 
 # Install Playwright browsers silently
 RUN playwright install chromium > /dev/null 2>&1

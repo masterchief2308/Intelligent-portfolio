@@ -4,9 +4,15 @@ Hybrid dense (MiniLM) + sparse (BM25) retrieval with RRF fusion and project-wise
 """
 
 import logging
+import os
+import time
 from typing import Any, Optional
 
 from qdrant_client import QdrantClient, models
+
+# Use image-baked caches when present (see Dockerfile warmup_embed_models.py)
+os.environ.setdefault("HF_HOME", "/app/.cache/huggingface")
+os.environ.setdefault("FASTEMBED_CACHE_PATH", "/app/.cache/fastembed")
 
 from config import get_settings
 from services.retrieval_profiles import RetrievalUseCase, get_retrieval_profile
@@ -30,11 +36,16 @@ class QdrantService:
         self._client: QdrantClient | None = None
         self._dense_vector_name: str | None = None
         self._sparse_vector_name: str | None = None
+        self._ready = False
+
+    def is_ready(self) -> bool:
+        return self._ready
 
     def _ensure_client(self):
         if self._client is not None:
             return
 
+        started = time.perf_counter()
         try:
             self._client = QdrantClient(
                 url=self._url,
@@ -47,14 +58,17 @@ class QdrantService:
             sparse_params = self._client.get_fastembed_sparse_vector_params()
             self._dense_vector_name = next(iter(dense_params.keys()), None)
             self._sparse_vector_name = next(iter(sparse_params.keys()), None)
+            self._ready = True
 
             logger.info(
-                "Connected to Qdrant at %s (dense=%s, sparse=%s)",
+                "Qdrant ready in %.1fs at %s (dense=%s, sparse=%s)",
+                time.perf_counter() - started,
                 self._url,
                 self._dense_vector_name,
                 self._sparse_vector_name,
             )
         except Exception as e:
+            self._ready = False
             logger.warning("Qdrant unavailable: %s", e)
 
     def recreate_collection(self):
