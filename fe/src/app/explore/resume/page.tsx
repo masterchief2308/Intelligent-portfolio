@@ -2,15 +2,14 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useDropzone } from 'react-dropzone';
 import { api } from '@/lib/api';
 import { applyStepEvent } from '@/lib/thinkingSteps';
 import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
-import { usePortfolioStore } from '@/store/usePortfolioStore';
 
 export default function ResumeComparePage() {
   const router = useRouter();
-  const setIsStreamingLLM = usePortfolioStore((state) => state.setIsStreamingLLM);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
@@ -38,7 +37,6 @@ export default function ResumeComparePage() {
     if (!file) return;
 
     setLoading(true);
-    setIsStreamingLLM(true);
     setError('');
     setThinkingSteps([]);
 
@@ -53,7 +51,6 @@ export default function ResumeComparePage() {
       setError(err.message || 'An error occurred during comparison.');
     } finally {
       setLoading(false);
-      setIsStreamingLLM(false);
       setThinkingSteps([]);
     }
   };
@@ -65,16 +62,24 @@ export default function ResumeComparePage() {
           onClick={() => router.push('/explore')}
           className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors mb-8 block"
         >
-          ← Return to Explore
+          ← Explore hub
         </button>
 
         <div className="mb-16">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-2">[ Matcher 02 — Portfolio ]</p>
           <h1 className="text-5xl sm:text-6xl md:text-[5rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase max-w-4xl mb-4">
-            Resume Matcher
+            Portfolio<br />
+            <span className="text-amber-500">Resume Match</span>
           </h1>
-          <p className="font-mono text-sm uppercase tracking-widest text-amber-500">
-            Compare your experience against the portfolio
+          <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground max-w-2xl leading-relaxed">
+            Upload <strong className="text-foreground">your</strong> resume — scored against Aditya&apos;s portfolio projects (not other candidates).
           </p>
+          <Link
+            href="/explore/recruiter"
+            className="inline-block mt-4 font-mono text-[10px] uppercase tracking-widest text-amber-500/70 hover:text-amber-500 border border-amber-500/30 px-3 py-2"
+          >
+            Need JD candidate matching instead? →
+          </Link>
         </div>
 
         {!result ? (

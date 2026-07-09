@@ -36,6 +36,7 @@
     --ring: #F59E0B; /* Amber focus ring */
     
     --radius: 1rem; /* Softer, modern border radii for Bento boxes */
+
   }
 
   * {
@@ -43,13 +44,24 @@
   }
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior-y: none;
   }
   html {
     @apply font-sans antialiased;
+    scroll-behavior: smooth;
   }
   
   /* Force hide Next.js dev indicator without restarting server */
   nextjs-portal, #__next-prerender-indicator {
     display: none !important;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+  .bottom-safe {
+    bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }

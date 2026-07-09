@@ -3,6 +3,7 @@
 import { useHydrateSession } from '@/hooks/useHydrateSession';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { api } from '@/lib/api';
+import SessionGate from '@/components/SessionGate';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -26,11 +27,7 @@ export default function JourneyPage() {
   }
 
   if (!personalization) {
-    return (
-      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
-        <p className="text-muted-foreground uppercase tracking-widest">[ERR] Session unauthorized. Return to Index.</p>
-      </div>
-    );
+    return <SessionGate title="Journey requires a session" />;
   }
 
   const experience = portfolio?.experience || [];

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useDropzone } from 'react-dropzone';
 import { api } from '@/lib/api';
 import { applyStepEvent } from '@/lib/thinkingSteps';
@@ -139,17 +140,24 @@ export default function RecruiterPage() {
           onClick={() => router.push('/explore')}
           className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors mb-8 block"
         >
-          ← Return to Explore
+          ← Explore hub
         </button>
 
         <div className="mb-16">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-2">[ Matcher 03 — Recruiter / JD ]</p>
           <h1 className="text-5xl sm:text-6xl md:text-[5rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase max-w-4xl mb-4">
-            Recruiter<br />
-            <span className="text-amber-500">Match_</span>
+            JD<br />
+            <span className="text-amber-500">Candidate Match</span>
           </h1>
-          <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
-            Upload candidate resumes → Paste JD → Find best matches
+          <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground max-w-2xl leading-relaxed">
+            Upload <strong className="text-foreground">candidate resumes</strong>, paste a job description, rank best fits.
           </p>
+          <Link
+            href="/explore/resume"
+            className="inline-block mt-4 font-mono text-[10px] uppercase tracking-widest text-amber-500/70 hover:text-amber-500 border border-amber-500/30 px-3 py-2"
+          >
+            Comparing your own CV to the portfolio? →
+          </Link>
         </div>
 
         {/* TTL Warning Banner */}
@@ -225,7 +233,7 @@ export default function RecruiterPage() {
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeFile(i); }}
-                      className="font-mono text-xs text-red-500/50 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      className="font-mono text-xs text-red-500/70 hover:text-red-500 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                     >
                       ×
                     </button>

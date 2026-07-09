@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePortfolioStore } from '@/store/usePortfolioStore';
 import { api } from '@/lib/api';
 import { formatResumeCompareMarkdown } from '@/lib/formatResumeCompare';
 import { applyStepEvent } from '@/lib/thinkingSteps';
 import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
+import { useBodyScrollLock, useEscapeKey } from '@/hooks/useBodyScrollLock';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -14,6 +15,19 @@ import rehypeRaw from 'rehype-raw';
 import { MessageCircle, X, FileUp } from 'lucide-react';
 
 type ChatMode = 'chat' | 'resume';
+
+const MATCHER_LINKS = [
+  {
+    href: '/explore/resume',
+    label: 'Portfolio match',
+    hint: 'Your CV vs Aditya\'s projects',
+  },
+  {
+    href: '/explore/recruiter',
+    label: 'JD match',
+    hint: 'Candidate pool + job description',
+  },
+] as const;
 
 interface Message {
   role: 'user' | 'assistant';
@@ -26,7 +40,7 @@ interface Message {
 const ACCEPTED_RESUME = '.pdf,.txt,application/pdf,text/plain';
 
 export default function ChatWidget() {
-  const { personalization, setIsStreamingLLM } = usePortfolioStore();
+  const { personalization } = usePortfolioStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [mode, setMode] = useState<ChatMode>('chat');
@@ -37,11 +51,22 @@ export default function ChatWidget() {
   const [streamingContent, setStreamingContent] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sessionId = useRef(`chat-${Date.now()}`);
 
+  useBodyScrollLock(isOpen && isFullScreen);
+  const closeChat = useCallback(() => {
+    setIsOpen(false);
+    setIsFullScreen(false);
+  }, []);
+  useEscapeKey(closeChat, isOpen);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    const anchor = messagesEndRef.current;
+    if (!container || !anchor) return;
+    anchor.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }, [messages, loading, mode, thinkingSteps, streamingContent]);
 
   if (!personalization) return null;
@@ -53,7 +78,6 @@ export default function ChatWidget() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
-    setIsStreamingLLM(true);
     setThinkingSteps([]);
     setStreamingContent('');
 
@@ -93,7 +117,6 @@ export default function ChatWidget() {
       ]);
     } finally {
       setLoading(false);
-      setIsStreamingLLM(false);
       setThinkingSteps([]);
       setStreamingContent('');
     }
@@ -107,7 +130,6 @@ export default function ChatWidget() {
       { role: 'user', content: `[Uploaded resume] ${file.name}` },
     ]);
     setLoading(true);
-    setIsStreamingLLM(true);
     setThinkingSteps([]);
     setResumeFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -144,7 +166,6 @@ export default function ChatWidget() {
       ]);
     } finally {
       setLoading(false);
-      setIsStreamingLLM(false);
       setThinkingSteps([]);
     }
   };
@@ -176,8 +197,10 @@ export default function ChatWidget() {
   return (
     <>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-20 right-6 z-50 w-12 h-12 bg-amber-500 hover:bg-amber-400 transition-colors flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)] group"
+        type="button"
+        onClick={() => (isOpen ? closeChat() : setIsOpen(true))}
+        aria-label={isOpen ? 'Close chat' : 'Open chat'}
+        className="fixed bottom-safe right-4 sm:right-6 z-[60] w-12 h-12 bg-amber-500 hover:bg-amber-400 transition-colors flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)] group"
       >
         <span className="font-mono text-background text-lg font-bold group-hover:scale-110 transition-transform flex items-center justify-center">
           {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
@@ -189,7 +212,14 @@ export default function ChatWidget() {
 
       {isOpen && (
         <div
-          className={`fixed z-50 flex flex-col border border-foreground/20 bg-[#050505] shadow-[0_0_40px_rgba(0,0,0,0.5)] transition-all duration-300 ${isFullScreen ? 'inset-4 md:inset-12 bottom-36 md:bottom-12' : 'bottom-36 right-6 w-[380px] h-[500px]'}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Portfolio assistant"
+          className={`fixed z-[60] flex flex-col border border-foreground/20 bg-[#050505] shadow-[0_0_40px_rgba(0,0,0,0.5)] transition-all duration-300 ${
+            isFullScreen
+              ? 'inset-3 sm:inset-6 md:inset-10'
+              : 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 sm:right-6 w-[min(380px,calc(100vw-2rem))] h-[min(500px,calc(100dvh-7rem))]'
+          }`}
         >
           <div className="px-4 py-3 border-b border-foreground/10 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -212,20 +242,23 @@ export default function ChatWidget() {
                   className={`px-2 py-1 font-mono text-[9px] uppercase tracking-widest transition-colors ${
                     mode === 'resume' ? 'bg-amber-500 text-background' : 'text-foreground/50 hover:text-foreground'
                   }`}
+                  title="Compare your resume to portfolio projects"
                 >
-                  Resume
+                  Vs Portfolio
                 </button>
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setIsFullScreen(!isFullScreen)}
+              aria-label={isFullScreen ? 'Exit fullscreen' : 'Fullscreen'}
               className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 hover:text-amber-500 transition-colors shrink-0"
             >
               {isFullScreen ? '[ MIN ]' : '[ MAX ]'}
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
             {messages.length === 0 && mode === 'chat' && personalization.website_config?.suggested_queries && (
               <div className="space-y-3">
                 <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40">
@@ -248,17 +281,23 @@ export default function ChatWidget() {
             {messages.length === 0 && mode === 'resume' && (
               <div className="space-y-3 border border-dashed border-foreground/20 p-4">
                 <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40">
-                  Compare your resume against Aditya&apos;s portfolio projects
+                  Portfolio resume match (quick)
                 </p>
                 <p className="font-mono text-[10px] text-foreground/30 leading-relaxed">
-                  Upload a PDF or TXT (max 5MB). You can compare multiple resumes — upload another file anytime.
+                  Upload your PDF or TXT here to score against Aditya&apos;s projects. For recruiter JD matching (many candidates + job description), use the full tool below.
                 </p>
-                <Link
-                  href="/explore/resume"
-                  className="inline-block font-mono text-[10px] uppercase tracking-widest text-amber-500/70 hover:text-amber-500"
-                >
-                  Open full resume matcher →
-                </Link>
+                <div className="flex flex-col gap-2 pt-1">
+                  {MATCHER_LINKS.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="font-mono text-[10px] uppercase tracking-widest border border-foreground/20 px-3 py-2 hover:border-amber-500/50 hover:text-amber-500 transition-colors"
+                    >
+                      <span className="block text-foreground/80">{link.label}</span>
+                      <span className="block text-[9px] text-foreground/35 normal-case tracking-normal mt-0.5">{link.hint}</span>
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -375,7 +414,7 @@ export default function ChatWidget() {
                 <button
                   type="button"
                   onClick={() => setMode('resume')}
-                  title="Compare a resume"
+                  title="Resume matchers"
                   className="border border-foreground/20 px-3 py-2 text-foreground/50 hover:text-amber-500 hover:border-amber-500/50 transition-colors disabled:opacity-30"
                   disabled={loading}
                 >

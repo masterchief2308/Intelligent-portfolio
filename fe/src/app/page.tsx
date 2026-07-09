@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
-import { usePortfolioStore } from '@/store/usePortfolioStore';
 import { useHydrateSession } from '@/hooks/useHydrateSession';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { api } from '@/lib/api';
 import { applyStepEvent } from '@/lib/thinkingSteps';
 import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
+import { useBodyScrollLock, useEscapeKey } from '@/hooks/useBodyScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { FeaturedProject } from '@/types';
 import React from 'react';
@@ -15,7 +15,6 @@ import React from 'react';
 export default function Home() {
   const { mounted, personalization, setPersonalization } = useHydrateSession();
   const { data: portfolio } = usePortfolioData();
-  const setIsStreamingLLM = usePortfolioStore((state) => state.setIsStreamingLLM);
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("hiring");
@@ -26,12 +25,20 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
+  const showPipelineOverlay = loading || (error !== null && thinkingSteps.length > 0);
+  useBodyScrollLock(showPipelineOverlay);
+  useEscapeKey(() => {
+    if (error) {
+      setError(null);
+      setThinkingSteps([]);
+    }
+  }, showPipelineOverlay && !!error);
+
   async function handlePersonalization(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
 
     setLoading(true);
-    setIsStreamingLLM(true);
     setThinkingSteps([
       {
         id: 'init',
@@ -137,7 +144,6 @@ export default function Home() {
       setError(err.message || "Unknown error occurred");
     } finally {
       setLoading(false);
-      setIsStreamingLLM(false);
     }
   }
 
@@ -178,13 +184,13 @@ export default function Home() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen relative z-10 px-6 sm:px-12 md:px-24 pt-32 pb-24 flex flex-col">
+    <div className="min-h-[100dvh] relative z-10 px-6 sm:px-12 md:px-24 pt-24 sm:pt-28 pb-16 flex flex-col">
       <main className="flex-1 w-full max-w-[1400px] mx-auto">
 
-        <div className="mb-32">
+        <div className="mb-16 sm:mb-24">
           {!personalization ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
-              <h1 className="text-6xl sm:text-7xl md:text-[7rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 sm:space-y-12">
+              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tighter leading-[0.95] text-foreground uppercase break-words">
                 {portfolio?.basics.name?.split(' ')[0] || 'Aditya'} <br />
                 <span className="text-muted-foreground">Architect.</span>
               </h1>
@@ -304,7 +310,7 @@ export default function Home() {
                     <Link
                       href={`/projects/${project.id}`}
                       key={project.id}
-                      className={`group relative flex flex-col justify-between border border-foreground/10 p-8 hover:bg-white/[0.04] bg-white/[0.01] backdrop-blur-sm transition-all duration-300 cursor-crosshair ${idx === 0 ? 'lg:col-span-2' : ''}`}
+                      className={`group relative flex flex-col justify-between border border-foreground/10 p-8 hover:bg-white/[0.04] bg-white/[0.01] backdrop-blur-sm transition-all duration-300 cursor-pointer ${idx === 0 ? 'lg:col-span-2' : ''}`}
                     >
                       <div className="flex flex-col mb-16">
                         <h3 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase mb-6">
@@ -348,12 +354,15 @@ export default function Home() {
       </main>
 
       <AnimatePresence>
-        {(loading || (error && thinkingSteps.length > 0)) && (
+        {showPipelineOverlay && (
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Personalization pipeline"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4 overscroll-contain"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
