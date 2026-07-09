@@ -36,8 +36,9 @@ COPY . .
 # RUN useradd -m appuser && chown -R appuser:appuser /app
 # USER appuser
 
-# Expose FastAPI port
-EXPOSE 8000
+# Expose Cloud Run default port
+EXPOSE 8080
+ENV PORT=8080
 
-# Start Uvicorn
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Start Uvicorn — Cloud Run injects PORT; default 8080 (not 8000)
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]

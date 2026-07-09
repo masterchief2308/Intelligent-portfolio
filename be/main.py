@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
         api_key=settings.QDRANT_API_KEY,
     )
     qdrant.ensure_collection()
-    qdrant.ensure_resume_pool_collection()
+    # resume_pool created lazily on first recruiter upload — saves startup time
 
     # Non-blocking TTL purge — don't delay readiness
     async def _purge_expired_resumes() -> None:

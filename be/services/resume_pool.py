@@ -89,7 +89,7 @@ def chunk_resume(
     chunks = []
     start = 0
     idx = 0
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).timestamp()
 
     while start < len(text):
         end = start + chunk_size

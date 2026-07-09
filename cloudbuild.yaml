@@ -35,6 +35,8 @@ steps:
       - '--region'
       - 'asia-south1'
       - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
       - '--memory'
       - '2Gi'
       - '--cpu'
@@ -47,7 +49,7 @@ steps:
       - '--timeout'
       - '300'
       - '--startup-probe'
-      - 'httpGet.path=/ready,httpGet.port=8080,initialDelaySeconds=5,timeoutSeconds=5,periodSeconds=5,failureThreshold=24'
+      - 'httpGet.path=/ready,httpGet.port=8080,initialDelaySeconds=2,timeoutSeconds=3,periodSeconds=3,failureThreshold=15'
       - '--set-secrets=/secrets/.env=PORTFOLIO_SECRETS:latest'
 
 images:

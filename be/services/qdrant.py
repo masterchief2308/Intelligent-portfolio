@@ -338,6 +338,7 @@ class QdrantService:
             logger.warning("Qdrant not available, skipping resume upsert")
             return
 
+        self.ensure_resume_pool_collection()
         pool = self._resume_pool_collection()
         self._client.add(
             collection_name=pool,
@@ -353,6 +354,7 @@ class QdrantService:
         top_k: int = 20,
     ) -> list[dict[str, Any]]:
         """Hybrid search against the resume_pool collection."""
+        self.ensure_resume_pool_collection()
         pool = self._resume_pool_collection()
         return await self.search(
             query=query,
@@ -417,15 +419,19 @@ class QdrantService:
 
     def purge_expired_resumes(self, ttl_hours: int = 24):
         """Delete resume chunks older than ttl_hours from the pool."""
-        import datetime
+        import time
         self._ensure_client()
         if self._client is None:
             return 0
 
         pool = self._resume_pool_collection()
-        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(hours=ttl_hours)).isoformat()
+        cutoff = time.time() - (ttl_hours * 3600)
 
         try:
+            collections = [c.name for c in self._client.get_collections().collections]
+            if pool not in collections:
+                return 0
+
             self._client.delete(
                 collection_name=pool,
                 points_selector=models.FilterSelector(
