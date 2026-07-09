@@ -14,18 +14,22 @@ from typing import AsyncIterator
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from config import get_settings
+from rate_limit import (
+    LIMIT_RECRUITER_MATCH,
+    LIMIT_RECRUITER_POOL_CLEAR,
+    LIMIT_RECRUITER_POOL_READ,
+    LIMIT_RECRUITER_UPLOAD,
+    limiter,
+)
 from services.qdrant import get_qdrant
 from services.gemini import get_flash_llm
 from services.resume_pool import ingest_resumes
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 
 # ── Pydantic Schemas ─────────────────────────────────────────────
@@ -82,7 +86,7 @@ def _step(id: str, label: str | None = None, status: str = "running") -> dict:
 
 
 @router.post("/api/recruiter/upload", response_model=UploadResponse)
-@limiter.limit("20/minute")
+@limiter.limit(LIMIT_RECRUITER_UPLOAD)
 async def upload_resumes(request: Request, files: list[UploadFile] = File(...)):
     """Upload one or more resume files (PDF, TXT, DOCX) into the resume pool."""
     settings = get_settings()
@@ -114,7 +118,7 @@ async def upload_resumes(request: Request, files: list[UploadFile] = File(...)):
 
 
 @router.get("/api/recruiter/pool", response_model=PoolStatsResponse)
-@limiter.limit("30/minute")
+@limiter.limit(LIMIT_RECRUITER_POOL_READ)
 async def get_pool_stats(request: Request):
     """Get resume pool statistics."""
     settings = get_settings()
@@ -129,7 +133,7 @@ async def get_pool_stats(request: Request):
 
 
 @router.delete("/api/recruiter/pool")
-@limiter.limit("5/minute")
+@limiter.limit(LIMIT_RECRUITER_POOL_CLEAR)
 async def clear_pool(request: Request):
     """Clear the entire resume pool."""
     qdrant = get_qdrant()
@@ -235,7 +239,7 @@ async def _match_pipeline(job_description: str) -> AsyncIterator[str]:
 
 
 @router.post("/api/recruiter/match/stream")
-@limiter.limit("10/minute")
+@limiter.limit(LIMIT_RECRUITER_MATCH)
 async def match_jd_stream(request: Request, body: JDMatchRequest):
     """SSE stream: match job description against resume pool."""
     async def event_stream():
@@ -246,7 +250,7 @@ async def match_jd_stream(request: Request, body: JDMatchRequest):
 
 
 @router.post("/api/recruiter/match")
-@limiter.limit("10/minute")
+@limiter.limit(LIMIT_RECRUITER_MATCH)
 async def match_jd(request: Request, body: JDMatchRequest):
     """Non-streaming: match job description against resume pool."""
     result = None

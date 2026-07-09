@@ -8,17 +8,15 @@ from typing import AsyncIterator
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException, Form
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from langchain_core.messages import SystemMessage, HumanMessage
 
+from rate_limit import LIMIT_RESUME_COMPARE, limiter
 from services.qdrant import get_qdrant
 from services.portfolio_chunks import format_chunks_for_llm
 from services.gemini import get_flash_llm
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 
 class RelevancyMatch(BaseModel):
@@ -148,7 +146,7 @@ async def _compare_pipeline(file: UploadFile, session_id: str | None = None) -> 
 
 
 @router.post("/api/resume/compare/stream")
-@limiter.limit("10/minute")
+@limiter.limit(LIMIT_RESUME_COMPARE)
 async def compare_resume_stream(
     request: Request, 
     file: UploadFile = File(...),
@@ -162,7 +160,7 @@ async def compare_resume_stream(
 
 
 @router.post("/api/resume/compare", response_model=ResumeCompareResponse)
-@limiter.limit("10/minute")
+@limiter.limit(LIMIT_RESUME_COMPARE)
 async def compare_resume(request: Request, file: UploadFile = File(...)):
     result = None
     async for event in _compare_pipeline(file):
