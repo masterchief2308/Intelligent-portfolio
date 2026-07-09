@@ -2,16 +2,13 @@
 
 import { useHydrateSession } from '@/hooks/useHydrateSession';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
-import { api } from '@/lib/api';
 import SessionGate from '@/components/SessionGate';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 
 export default function JourneyPage() {
   const { mounted, personalization } = useHydrateSession();
   const { data: portfolio, isError, error } = usePortfolioData();
   const router = useRouter();
-  const [downloading, setDownloading] = useState(false);
 
   if (!mounted) return null;
   
@@ -59,14 +56,6 @@ export default function JourneyPage() {
     ];
   }
 
-  const handleDownload = () => {
-    setDownloading(true);
-    // The backend /api/resume/pdf sends Content-Disposition: attachment
-    // Navigating directly to it forces a download.
-    window.location.href = api.getResumePdf();
-    setTimeout(() => setDownloading(false), 2000);
-  };
-
   return (
     <div className="min-h-screen relative z-10 px-6 sm:px-12 md:px-24 pt-32 pb-24 flex flex-col">
       <main className="flex-1 w-full max-w-[1000px] mx-auto">
@@ -77,17 +66,10 @@ export default function JourneyPage() {
           ← Return to Index
         </button>
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+        <div className="mb-16">
           <h1 className="text-5xl sm:text-6xl md:text-[5rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase max-w-4xl">
             Timeline / Journey
           </h1>
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="font-mono text-xs uppercase tracking-widest border border-amber-500/50 text-amber-500 px-6 py-3 hover:bg-amber-500/10 transition-colors disabled:opacity-50 whitespace-nowrap"
-          >
-            {downloading ? 'DOWNLOADING...' : '↓ DOWNLOAD RESUME'}
-          </button>
         </div>
 
         <div className="relative border-l border-foreground/20 ml-4 md:ml-8 pl-8 md:pl-16 space-y-24">

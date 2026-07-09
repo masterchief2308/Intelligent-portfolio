@@ -164,8 +164,6 @@ export const api = {
     return result;
   },
 
-  getResumePdf: () => `${BASE}/api/resume/pdf`,
-
   trackVisit: (data: AnalyticsVisit) =>
     request<{ tracked: boolean }>('/api/analytics/visit', {
       method: 'POST',

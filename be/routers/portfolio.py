@@ -30,10 +30,19 @@ def _load_portfolio() -> dict:
 
 @router.get("/api/resume/pdf")
 async def get_resume():
-    """Download the resume PDF."""
-    from fastapi.responses import FileResponse
-    from pathlib import Path
-    
+    """Download the resume PDF from Firestore (or local dev fallback)."""
+    from fastapi.responses import FileResponse, Response
+
+    firestore = get_firestore()
+    stored = await firestore.get_resume_pdf()
+    if stored and stored.get("content"):
+        filename = stored.get("filename", "Aditya_katkar_resume.pdf")
+        return Response(
+            content=stored["content"],
+            media_type=stored.get("content_type", "application/pdf"),
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
     search_paths = [
         Path(__file__).parent.parent / "data" / "Aditya_katkar_resume.pdf",
     ]
@@ -46,7 +55,10 @@ async def get_resume():
                 filename="Aditya_katkar_resume.pdf",
             )
 
-    raise HTTPException(status_code=404, detail="Resume PDF not found")
+    raise HTTPException(
+        status_code=404,
+        detail="Resume PDF not found. Upload via admin or run: python scripts/seed_resume_pdf.py <path>",
+    )
 
 
 @router.get("/api/portfolio")

@@ -16,6 +16,9 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 SESSION_TTL_DAYS = 5
+# Firestore document size limit is 1 MiB — keep resume PDF under ~900 KiB raw bytes
+MAX_RESUME_PDF_BYTES = 900 * 1024
+RESUME_DOC_ID = "resume_pdf"
 
 
 class FirestoreService:
@@ -43,6 +46,7 @@ class FirestoreService:
                 "chat_sessions": {},
                 "visits": {},
                 "admin_config": {},
+                "site_assets": {},
             }
 
     # ── Personalization Cache (5-day TTL) ────────────────────────
@@ -323,6 +327,71 @@ class FirestoreService:
             self._db.collection("personalizations").document(key).collection("portfolio").document("main").set(data)
         else:
             self._mem.setdefault("dynamic_portfolio", {})[key] = data
+
+    # ── Site assets (resume PDF, etc.) ───────────────────────────
+
+    async def get_resume_pdf(self) -> Optional[dict]:
+        """Return stored resume PDF metadata + bytes, or None if not uploaded."""
+        if self._db:
+            doc = self._db.collection("site_assets").document(RESUME_DOC_ID).get()
+            if not doc.exists:
+                return None
+            data = doc.to_dict() or {}
+            content = data.get("content")
+            if not content:
+                return None
+            if isinstance(content, bytes):
+                pdf_bytes = content
+            else:
+                # Legacy string / Blob wrapper
+                pdf_bytes = bytes(content)
+            return {
+                "content": pdf_bytes,
+                "filename": data.get("filename", "resume.pdf"),
+                "content_type": data.get("content_type", "application/pdf"),
+                "updated_at": data.get("updated_at"),
+                "size_bytes": data.get("size_bytes", len(pdf_bytes)),
+            }
+
+        return self._mem.get("site_assets", {}).get(RESUME_DOC_ID)
+
+    async def save_resume_pdf(
+        self,
+        content: bytes,
+        filename: str = "Aditya_katkar_resume.pdf",
+        content_type: str = "application/pdf",
+    ) -> dict:
+        """Persist resume PDF to Firestore (survives Cloud Run redeploys)."""
+        if len(content) > MAX_RESUME_PDF_BYTES:
+            raise ValueError(
+                f"Resume PDF too large ({len(content)} bytes). "
+                f"Firestore limit is ~{MAX_RESUME_PDF_BYTES} bytes — compress the PDF."
+            )
+
+        payload = {
+            "content": content,
+            "filename": filename,
+            "content_type": content_type,
+            "size_bytes": len(content),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        if self._db:
+            self._db.collection("site_assets").document(RESUME_DOC_ID).set(payload)
+        else:
+            self._mem.setdefault("site_assets", {})[RESUME_DOC_ID] = payload
+
+        logger.info("Saved resume PDF to storage (%d bytes, %s)", len(content), filename)
+        return {
+            "filename": filename,
+            "size_bytes": len(content),
+            "updated_at": payload["updated_at"],
+        }
+
+    async def has_resume_pdf(self) -> bool:
+        stored = await self.get_resume_pdf()
+        return stored is not None and bool(stored.get("content"))
+
 
 # Singleton
 _instance: Optional[FirestoreService] = None
