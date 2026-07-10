@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
@@ -24,6 +24,12 @@ export const metadata: Metadata = {
   description: "AI & Distributed Systems Architecture Portfolio",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -43,7 +49,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} relative min-h-[100dvh] bg-background text-foreground antialiased selection:bg-foreground selection:text-background`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} relative min-h-screen-safe bg-background text-foreground antialiased selection:bg-foreground selection:text-background`}>
         <BlueprintCanvas />
         
         <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_50%_-20%,_rgba(255,160,50,0.15),_transparent_80%)] z-[-1]" />
@@ -52,7 +58,7 @@ export default async function RootLayout({
           <HydrationBoundary state={dehydrate(queryClient)}>
             <SiteNav />
 
-            <div className="pt-6 pb-safe">
+            <div className="pt-safe pb-safe">
               {children}
             </div>
             
@@ -60,7 +66,7 @@ export default async function RootLayout({
           </HydrationBoundary>
         </QueryProvider>
 
-        <footer className="fixed bottom-safe right-6 sm:right-12 md:right-24 z-30 pointer-events-auto">
+        <footer className="fixed bottom-safe left-4 sm:left-auto sm:right-12 md:right-24 z-30 pointer-events-auto">
           <Link href="/admin" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-amber-500 transition-colors bg-[#050505]/90 px-2 py-1 border border-foreground/10 backdrop-blur-sm">
             [ ADMIN_CONSOLE ]
           </Link>

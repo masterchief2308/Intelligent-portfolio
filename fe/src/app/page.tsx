@@ -184,7 +184,7 @@ export default function Home() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-[100dvh] relative z-10 px-6 sm:px-12 md:px-24 pt-24 sm:pt-28 pb-16 flex flex-col">
+    <div className="min-h-screen-safe relative z-10 px-4 sm:px-12 md:px-24 pt-20 sm:pt-28 pb-safe flex flex-col">
       <main className="flex-1 w-full max-w-[1400px] mx-auto">
 
         <div className="mb-16 sm:mb-24">
@@ -255,7 +255,7 @@ export default function Home() {
             </motion.div>
           ) : (
             <motion.div initial={{ opacity: 0, filter: 'blur(10px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} transition={{ duration: 1 }} className="space-y-12">
-              <h1 className="text-6xl sm:text-7xl md:text-[6rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase max-w-5xl">
+              <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tighter leading-[0.95] text-foreground uppercase break-words">
                 {personalization.website_config?.hero?.intro}
               </h1>
               <div className="font-mono text-sm max-w-md uppercase tracking-widest text-muted-foreground border-l border-foreground/20 pl-6 py-2">
@@ -310,10 +310,10 @@ export default function Home() {
                     <Link
                       href={`/projects/${project.id}`}
                       key={project.id}
-                      className={`group relative flex flex-col justify-between border border-foreground/10 p-8 hover:bg-white/[0.04] bg-white/[0.01] backdrop-blur-sm transition-all duration-300 cursor-pointer ${idx === 0 ? 'lg:col-span-2' : ''}`}
+                      className={`group relative flex flex-col justify-between border border-foreground/10 p-5 sm:p-8 hover:bg-white/[0.04] bg-white/[0.01] backdrop-blur-sm transition-all duration-300 cursor-pointer ${idx === 0 ? 'lg:col-span-2' : ''}`}
                     >
                       <div className="flex flex-col mb-16">
-                        <h3 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase mb-6">
+                        <h3 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tighter uppercase mb-4 sm:mb-6 break-words">
                           {project.title}
                         </h3>
                         <p className="font-mono text-sm text-foreground uppercase tracking-widest max-w-xl leading-relaxed mb-4">
@@ -325,9 +325,9 @@ export default function Home() {
                         </div>
                       </div>
 
-                      <div className="flex items-end justify-between border-t border-foreground/10 pt-8 mt-auto">
-                        <div>
-                          <div className="font-mono text-xs uppercase tracking-widest text-foreground bg-amber-500/20 px-3 py-1 mb-2 w-fit">
+                      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-t border-foreground/10 pt-6 sm:pt-8 mt-auto">
+                        <div className="min-w-0">
+                          <div className="font-mono text-xs uppercase tracking-widest text-foreground bg-amber-500/20 px-3 py-1 mb-2 w-fit max-w-full truncate">
                             {project.metric ? `> ${project.metric}` : '[ SYSTEM METRIC UNAVAILABLE ]'}
                           </div>
                           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground block group-hover:text-foreground transition-colors">
@@ -335,8 +335,8 @@ export default function Home() {
                           </span>
                         </div>
 
-                        <div className="text-right">
-                          <span className="block text-4xl md:text-5xl font-bold tracking-tighter text-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.2)] group-hover:text-amber-400 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all">
+                        <div className="text-left sm:text-right shrink-0">
+                          <span className="block text-3xl sm:text-4xl md:text-5xl font-bold tracking-tighter text-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.2)] group-hover:text-amber-400 group-hover:drop-shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all">
                             {project.metric || '99.9%'}
                           </span>
                           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-2 block">
@@ -362,7 +362,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4 overscroll-contain"
+            className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4 overscroll-contain"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}

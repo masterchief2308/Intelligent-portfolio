@@ -48,7 +48,7 @@ export default function ExploreHubPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] relative z-10 px-6 sm:px-12 md:px-24 pt-24 sm:pt-28 pb-16">
+    <div className="min-h-screen-safe relative z-10 px-4 sm:px-12 md:px-24 pt-20 sm:pt-28 pb-safe">
       <main className="max-w-[1100px] mx-auto">
         <button
           type="button"

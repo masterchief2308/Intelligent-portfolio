@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useDropzone } from 'react-dropzone';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { api } from '@/lib/api';
 import { applyStepEvent } from '@/lib/thinkingSteps';
 import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
@@ -11,6 +12,7 @@ import type { CandidateMatch, JDMatchResponse, ResumePoolStats } from '@/types';
 
 export default function RecruiterPage() {
   const router = useRouter();
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
   // ── Pool state ────────────────────────────────────────────────
   const [poolStats, setPoolStats] = useState<ResumePoolStats | null>(null);
@@ -133,7 +135,7 @@ export default function RecruiterPage() {
   };
 
   return (
-    <div className="min-h-screen relative z-10 px-6 sm:px-12 md:px-24 pt-32 pb-24 flex flex-col">
+    <div className="min-h-screen-safe relative z-10 px-4 sm:px-12 md:px-24 pt-24 sm:pt-32 pb-safe flex flex-col">
       <main className="flex-1 w-full max-w-[1400px] mx-auto">
         {/* Header */}
         <button
@@ -145,7 +147,7 @@ export default function RecruiterPage() {
 
         <div className="mb-16">
           <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-2">[ Matcher 03 — Recruiter / JD ]</p>
-          <h1 className="text-5xl sm:text-6xl md:text-[5rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase max-w-4xl mb-4">
+          <h1 className="text-4xl sm:text-5xl md:text-[5rem] font-bold tracking-tighter leading-[0.95] text-foreground uppercase max-w-4xl mb-4 break-words">
             JD<br />
             <span className="text-amber-500">Candidate Match</span>
           </h1>
@@ -162,14 +164,14 @@ export default function RecruiterPage() {
 
         {/* TTL Warning Banner */}
         {poolStats && poolStats.count > 0 && (
-          <div className="mb-8 p-4 border border-amber-500/30 bg-amber-500/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-amber-500 text-lg">⏱</span>
-              <p className="font-mono text-xs text-amber-500/80 uppercase tracking-widest">
+          <div className="mb-8 p-4 border border-amber-500/30 bg-amber-500/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-amber-500 text-lg shrink-0">⏱</span>
+              <p className="font-mono text-[10px] sm:text-xs text-amber-500/80 uppercase tracking-widest">
                 Resumes auto-purge after {poolStats.ttl_hours}h for privacy
               </p>
             </div>
-            <span className="font-mono text-[10px] text-foreground/40">
+            <span className="font-mono text-[10px] text-foreground/40 shrink-0">
               {poolStats.count} chunks stored
             </span>
           </div>
@@ -193,7 +195,7 @@ export default function RecruiterPage() {
             {/* Drop zone */}
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-300
+              className={`border-2 border-dashed p-6 sm:p-8 text-center cursor-pointer transition-all duration-300
                 ${isDragActive
                   ? 'border-amber-500 bg-amber-500/10 scale-[1.01]'
                   : 'border-foreground/20 hover:border-amber-500/50 hover:bg-white/[0.02]'
@@ -302,7 +304,7 @@ export default function RecruiterPage() {
                     value={jdText}
                     onChange={(e) => setJdText(e.target.value)}
                     placeholder="Paste the job description here..."
-                    rows={14}
+                    rows={isMobile ? 8 : 14}
                     className="w-full bg-white/[0.02] border border-foreground/20 p-4 font-mono text-sm text-foreground placeholder:text-foreground/20 resize-none focus:outline-none focus:border-amber-500/50 transition-colors"
                   />
                   {jdText.length > 0 && (
@@ -396,22 +398,22 @@ export default function RecruiterPage() {
                       className="border border-foreground/10 bg-foreground/[0.02] p-6 hover:border-foreground/20 transition-all duration-300"
                     >
                       {/* Header row */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <div className="flex items-center gap-3 mb-1">
-                            <span className="font-mono text-foreground/20 text-xs">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-3 mb-1 flex-wrap">
+                            <span className="font-mono text-foreground/20 text-xs shrink-0">
                               #{String(i + 1).padStart(2, '0')}
                             </span>
-                            <h4 className="font-bold text-lg tracking-tight">
+                            <h4 className="font-bold text-base sm:text-lg tracking-tight break-words">
                               {candidate.candidate_name}
                             </h4>
                           </div>
-                          <p className="font-mono text-[10px] text-foreground/40 uppercase tracking-widest">
+                          <p className="font-mono text-[10px] text-foreground/40 uppercase tracking-widest truncate">
                             {candidate.filename}
                           </p>
                         </div>
                         <span
-                          className={`font-mono text-sm font-bold border px-3 py-1 ${scoreColor(candidate.relevancy_score)}`}
+                          className={`font-mono text-sm font-bold border px-3 py-1 w-fit shrink-0 ${scoreColor(candidate.relevancy_score)}`}
                         >
                           {Math.round(candidate.relevancy_score * 100)}%
                         </span>

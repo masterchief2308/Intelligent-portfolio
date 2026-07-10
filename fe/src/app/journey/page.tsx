@@ -57,7 +57,7 @@ export default function JourneyPage() {
   }
 
   return (
-    <div className="min-h-screen relative z-10 px-6 sm:px-12 md:px-24 pt-32 pb-24 flex flex-col">
+    <div className="min-h-screen-safe relative z-10 px-4 sm:px-12 md:px-24 pt-24 sm:pt-32 pb-safe flex flex-col">
       <main className="flex-1 w-full max-w-[1000px] mx-auto">
         <button
           onClick={() => router.push('/')}
@@ -67,29 +67,29 @@ export default function JourneyPage() {
         </button>
 
         <div className="mb-16">
-          <h1 className="text-5xl sm:text-6xl md:text-[5rem] font-bold tracking-tighter leading-[0.9] text-foreground uppercase max-w-4xl">
+          <h1 className="text-4xl sm:text-5xl md:text-[5rem] font-bold tracking-tighter leading-[0.95] text-foreground uppercase max-w-4xl break-words">
             Timeline / Journey
           </h1>
         </div>
 
-        <div className="relative border-l border-foreground/20 ml-4 md:ml-8 pl-8 md:pl-16 space-y-24">
+        <div className="relative border-l border-foreground/20 ml-2 sm:ml-4 md:ml-8 pl-5 sm:pl-8 md:pl-16 space-y-16 sm:space-y-24">
           {timeline.map((item, idx) => (
             <div key={idx} className="relative group">
-              <div className="absolute -left-[37px] md:-left-[69px] top-2 w-3 h-3 bg-amber-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)] group-hover:scale-150 transition-transform" />
+              <div className="absolute -left-[23px] sm:-left-[37px] md:-left-[69px] top-2 w-3 h-3 bg-amber-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)] group-hover:scale-150 transition-transform" />
 
-              <div className="flex flex-col md:flex-row gap-4 md:gap-12 md:items-baseline mb-6">
-                <div className="font-mono text-xs uppercase tracking-widest text-amber-500 min-w-[120px]">
+              <div className="flex flex-col gap-2 md:flex-row md:gap-12 md:items-baseline mb-4 sm:mb-6">
+                <div className="font-mono text-[10px] sm:text-xs uppercase tracking-widest text-amber-500 shrink-0">
                   {item.startDate} — {item.endDate}
                 </div>
-                <div>
-                  <h2 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase text-foreground">{item.role}</h2>
+                <div className="min-w-0">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter uppercase text-foreground break-words">{item.role}</h2>
                   <h3 className="font-mono text-sm uppercase tracking-widest text-muted-foreground mt-2">
                     {item.company} {item.type === 'experience' && 'location' in item ? `| ${(item as any).location}` : ''}
                   </h3>
                 </div>
               </div>
 
-              <div className="md:ml-[168px] border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-6 hover:bg-white/[0.04] transition-colors">
+              <div className="md:ml-[168px] border border-foreground/10 bg-white/[0.01] backdrop-blur-sm p-4 sm:p-6 hover:bg-white/[0.04] transition-colors">
                 {item.relevance && (
                   <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-sm">
                     <p className="text-amber-500 font-mono text-sm tracking-wide leading-relaxed">
@@ -112,9 +112,9 @@ export default function JourneyPage() {
                     <div className="grid gap-4">
                       {portfolio?.projects?.filter(p => p.company === item.company).map(p => (
                         <div key={p.id} className="p-4 border border-foreground/10 bg-black/20 hover:border-amber-500/30 transition-colors cursor-pointer" onClick={() => router.push(`/projects/${p.id}`)}>
-                          <div className="flex justify-between items-start gap-4 mb-2">
-                            <h5 className="font-bold text-foreground">{p.title}</h5>
-                            <span className="font-mono text-[10px] uppercase text-amber-500 border border-amber-500/30 px-2 py-0.5 whitespace-nowrap">{p.metric}</span>
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
+                            <h5 className="font-bold text-foreground break-words">{p.title}</h5>
+                            <span className="font-mono text-[10px] uppercase text-amber-500 border border-amber-500/30 px-2 py-0.5 w-fit shrink-0">{p.metric}</span>
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">{p.context}</p>
                         </div>

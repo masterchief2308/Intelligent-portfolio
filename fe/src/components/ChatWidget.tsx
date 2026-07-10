@@ -7,6 +7,7 @@ import { formatResumeCompareMarkdown } from '@/lib/formatResumeCompare';
 import { applyStepEvent } from '@/lib/thinkingSteps';
 import ThinkingPanel, { type ThinkingStep } from '@/components/ThinkingPanel';
 import { useBodyScrollLock, useEscapeKey } from '@/hooks/useBodyScrollLock';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -54,12 +55,17 @@ export default function ChatWidget() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sessionId = useRef(`chat-${Date.now()}`);
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
-  useBodyScrollLock(isOpen && isFullScreen);
+  useBodyScrollLock(isOpen);
   const closeChat = useCallback(() => {
     setIsOpen(false);
     setIsFullScreen(false);
   }, []);
+  const openChat = useCallback(() => {
+    setIsOpen(true);
+    if (isMobile) setIsFullScreen(true);
+  }, [isMobile]);
   useEscapeKey(closeChat, isOpen);
 
   useEffect(() => {
@@ -198,7 +204,7 @@ export default function ChatWidget() {
     <>
       <button
         type="button"
-        onClick={() => (isOpen ? closeChat() : setIsOpen(true))}
+        onClick={() => (isOpen ? closeChat() : openChat())}
         aria-label={isOpen ? 'Close chat' : 'Open chat'}
         className="fixed bottom-safe right-4 sm:right-6 z-[60] w-12 h-12 bg-amber-500 hover:bg-amber-400 transition-colors flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)] group"
       >
@@ -215,15 +221,15 @@ export default function ChatWidget() {
           role="dialog"
           aria-modal="true"
           aria-label="Portfolio assistant"
-          className={`fixed z-[60] flex flex-col border border-foreground/20 bg-[#050505] shadow-[0_0_40px_rgba(0,0,0,0.5)] transition-all duration-300 ${
+          className={`fixed z-[60] flex flex-col border border-foreground/20 bg-[#050505] shadow-[0_0_40px_rgba(0,0,0,0.5)] transition-all duration-300 max-w-full ${
             isFullScreen
-              ? 'inset-3 sm:inset-6 md:inset-10'
-              : 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 sm:right-6 w-[min(380px,calc(100vw-2rem))] h-[min(500px,calc(100dvh-7rem))]'
+              ? 'inset-2 sm:inset-6 md:inset-10'
+              : 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 sm:right-6 left-4 sm:left-auto w-full sm:w-[min(380px,calc(100%-2rem))] h-[min(500px,calc(100svh-7rem))]'
           }`}
         >
-          <div className="px-4 py-3 border-b border-foreground/10 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-amber-500 shrink-0">
+          <div className="px-3 sm:px-4 py-3 border-b border-foreground/10 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-amber-500 shrink-0 truncate max-w-[7rem] sm:max-w-none">
                 Portfolio Assistant
               </span>
               <div className="flex border border-foreground/20 shrink-0">
@@ -252,7 +258,7 @@ export default function ChatWidget() {
               type="button"
               onClick={() => setIsFullScreen(!isFullScreen)}
               aria-label={isFullScreen ? 'Exit fullscreen' : 'Fullscreen'}
-              className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 hover:text-amber-500 transition-colors shrink-0"
+              className="hidden sm:block font-mono text-[10px] uppercase tracking-widest text-foreground/50 hover:text-amber-500 transition-colors shrink-0"
             >
               {isFullScreen ? '[ MIN ]' : '[ MAX ]'}
             </button>
@@ -304,7 +310,7 @@ export default function ChatWidget() {
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className={`${isFullScreen ? 'max-w-[70%]' : 'max-w-[85%]'} p-4 ${
+                  className={`${isFullScreen ? 'max-w-[85%] sm:max-w-[70%]' : 'max-w-[92%] sm:max-w-[85%]'} p-3 sm:p-4 ${
                     msg.role === 'user'
                       ? 'bg-amber-500/10 border border-amber-500/30 text-foreground font-mono text-xs'
                       : 'bg-foreground/5 border border-foreground/10'
@@ -313,7 +319,7 @@ export default function ChatWidget() {
                   {msg.role === 'user' ? (
                     msg.content
                   ) : (
-                    <div className="prose prose-invert prose-amber max-w-none prose-sm font-mono text-xs prose-p:leading-relaxed prose-pre:bg-foreground/10 prose-pre:border prose-pre:border-foreground/20 prose-a:text-amber-500 hover:prose-a:text-amber-400 prose-headings:text-foreground prose-strong:text-amber-500">
+                    <div className="prose prose-invert prose-amber max-w-none prose-sm font-mono text-xs prose-p:leading-relaxed prose-pre:bg-foreground/10 prose-pre:border prose-pre:border-foreground/20 prose-pre:overflow-x-auto prose-a:text-amber-500 hover:prose-a:text-amber-400 prose-headings:text-foreground prose-strong:text-amber-500 break-words">
                       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
                         {msg.content}
                       </ReactMarkdown>
@@ -340,7 +346,7 @@ export default function ChatWidget() {
 
             {loading && (
               <div className="flex justify-start w-full">
-                <div className={`space-y-2 ${isFullScreen ? 'max-w-[70%]' : 'max-w-[85%]'} w-full`}>
+                <div className={`space-y-2 ${isFullScreen ? 'max-w-[85%] sm:max-w-[70%]' : 'max-w-[92%] sm:max-w-[85%]'} w-full`}>
                   {thinkingSteps.length > 0 && (
                     <ThinkingPanel
                       steps={thinkingSteps}
@@ -369,7 +375,7 @@ export default function ChatWidget() {
           <form onSubmit={handleSubmit} className="p-3 border-t border-foreground/10 flex flex-col gap-2">
             {mode === 'resume' ? (
               <>
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-2 items-center min-w-0">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -382,15 +388,15 @@ export default function ChatWidget() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={loading}
-                    className="flex-1 flex items-center justify-center gap-2 border border-foreground/20 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-foreground/70 hover:border-amber-500/50 hover:text-amber-500 transition-colors disabled:opacity-30"
+                    className="flex-1 min-w-0 flex items-center justify-center gap-2 border border-foreground/20 px-3 py-2.5 font-mono text-[10px] uppercase tracking-widest text-foreground/70 hover:border-amber-500/50 hover:text-amber-500 transition-colors disabled:opacity-30"
                   >
-                    <FileUp size={14} />
-                    {resumeFile ? resumeFile.name : 'Choose PDF or TXT'}
+                    <FileUp size={14} className="shrink-0" />
+                    <span className="truncate">{resumeFile ? resumeFile.name : 'Choose PDF or TXT'}</span>
                   </button>
                   <button
                     type="submit"
                     disabled={loading || !resumeFile}
-                    className="bg-amber-500 text-background px-4 py-2 font-mono text-xs font-bold hover:bg-amber-400 transition-colors disabled:opacity-30 shrink-0"
+                    className="bg-amber-500 text-background px-4 py-2.5 font-mono text-xs font-bold hover:bg-amber-400 transition-colors disabled:opacity-30 shrink-0 min-h-[44px]"
                   >
                     Compare
                   </button>
@@ -402,20 +408,20 @@ export default function ChatWidget() {
                 )}
               </>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex gap-2 min-w-0">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask about my projects..."
-                  className="flex-1 bg-transparent border border-foreground/20 px-3 py-2 font-mono text-xs text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-amber-500 transition-colors"
+                  className="flex-1 min-w-0 bg-transparent border border-foreground/20 px-3 py-2.5 font-mono text-xs text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-amber-500 transition-colors"
                   disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setMode('resume')}
                   title="Resume matchers"
-                  className="border border-foreground/20 px-3 py-2 text-foreground/50 hover:text-amber-500 hover:border-amber-500/50 transition-colors disabled:opacity-30"
+                  className="border border-foreground/20 px-3 py-2.5 text-foreground/50 hover:text-amber-500 hover:border-amber-500/50 transition-colors disabled:opacity-30 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
                   disabled={loading}
                 >
                   <FileUp size={16} />
@@ -423,7 +429,7 @@ export default function ChatWidget() {
                 <button
                   type="submit"
                   disabled={loading || !input.trim()}
-                  className="bg-amber-500 text-background px-4 py-2 font-mono text-xs font-bold hover:bg-amber-400 transition-colors disabled:opacity-30"
+                  className="bg-amber-500 text-background px-4 py-2.5 font-mono text-xs font-bold hover:bg-amber-400 transition-colors disabled:opacity-30 shrink-0 min-h-[44px] min-w-[44px]"
                 >
                   →
                 </button>

@@ -1,22 +1,34 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useHydrateSession } from '@/hooks/useHydrateSession';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import Link from 'next/link';
 import SessionGate from '@/components/SessionGate';
-import { ReactFlow, Background, Controls, Node, Edge, Position, Handle, useNodesState, useEdgesState } from '@xyflow/react';
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  Node,
+  Edge,
+  Position,
+  Handle,
+  useNodesState,
+  useEdgesState,
+  type ReactFlowInstance,
+} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 const BrutalistNode = ({ data }: { data: any }) => (
   <div className={`
-    bg-[#050505] border px-6 py-3 font-mono text-[10px] md:text-xs uppercase tracking-widest transition-all duration-300 relative
+    bg-[#050505] border px-3 py-2 sm:px-6 sm:py-3 font-mono text-[9px] sm:text-[10px] md:text-xs uppercase tracking-widest transition-all duration-300 relative max-w-[140px] sm:max-w-none
     ${data.isFaded ? 'opacity-20 grayscale' : 'opacity-100'}
     ${data.isProject ? 'border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' :
       'border-foreground/20 text-foreground hover:border-foreground hover:text-foreground'}
   `}>
     {!data.isProject && <Handle type="target" position={Position.Left} className="w-1 h-1 bg-amber-500/50 border-none" />}
-    {data.label}
+    <span className="block truncate sm:whitespace-normal">{data.label}</span>
     {data.isProject && <Handle type="source" position={Position.Right} className="w-1 h-1 bg-amber-500/50 border-none" />}
   </div>
 );
@@ -26,6 +38,9 @@ const nodeTypes = { custom: BrutalistNode };
 export default function ExploreTopologyPage() {
   const { mounted, personalization } = useHydrateSession();
   const { data: portfolio, isError, error } = usePortfolioData();
+  const isMobile = useMediaQuery('(max-width: 639px)');
+  const flowRef = useRef<ReactFlowInstance | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const { initialNodes, initialEdges } = useMemo(() => {
     const projects = portfolio?.projects || [];
@@ -36,8 +51,9 @@ export default function ExploreTopologyPage() {
     const uniqueSkills = Array.from(allSkills);
 
     const projectX = 0;
-    const skillX = 500;
-    const projectSpacingY = 200;
+    const skillX = isMobile ? 200 : 500;
+    const projectSpacingY = isMobile ? 110 : 200;
+    const skillSpacingY = isMobile ? 36 : 50;
     const projectStartY = -((projects.length - 1) * projectSpacingY) / 2;
 
     projects.forEach((project, pIdx) => {
@@ -63,7 +79,6 @@ export default function ExploreTopologyPage() {
       });
     });
 
-    const skillSpacingY = 50;
     const skillStartY = -((uniqueSkills.length - 1) * skillSpacingY) / 2;
     uniqueSkills.forEach((skill, sIdx) => {
       const sY = skillStartY + sIdx * skillSpacingY;
@@ -79,10 +94,32 @@ export default function ExploreTopologyPage() {
     });
 
     return { initialNodes: nodes, initialEdges: edges };
-  }, [portfolio]);
+  }, [portfolio, isMobile]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  useEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
+
+  const fitGraph = useCallback(() => {
+    flowRef.current?.fitView({ padding: isMobile ? 0.45 : 0.2, duration: 200 });
+  }, [isMobile]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => fitGraph());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fitGraph]);
+
+  const onInit = useCallback((instance: ReactFlowInstance) => {
+    flowRef.current = instance;
+    requestAnimationFrame(() => fitGraph());
+  }, [fitGraph]);
 
   const onNodeClick = useCallback((_event: any, node: Node) => {
     const connectedEdges = initialEdges.filter(e => e.source === node.id || e.target === node.id);
@@ -133,7 +170,7 @@ export default function ExploreTopologyPage() {
 
   if (isError) {
     return (
-      <div className="min-h-screen pt-32 px-6 sm:px-12 md:px-24 flex items-center justify-center font-mono">
+      <div className="min-h-screen-safe pt-32 px-4 sm:px-12 md:px-24 flex items-center justify-center font-mono">
         <div className="p-6 border border-red-500 bg-red-500/10 text-red-500 max-w-2xl z-50">
           <p className="uppercase tracking-widest font-bold mb-4">[BACKEND CAUGHT IN ERROR]</p>
           <p className="text-sm">{(error as Error)?.message || "Failed to load data"}</p>
@@ -147,26 +184,26 @@ export default function ExploreTopologyPage() {
   }
 
   return (
-    <div className="h-[100dvh] overflow-hidden relative z-10 flex flex-col">
-      <div className="absolute top-24 sm:top-28 left-6 sm:left-12 md:left-24 z-20 pointer-events-none max-w-[min(100%,28rem)]">
+    <div className="h-[100svh] overflow-hidden relative z-10 flex flex-col">
+      <div className="absolute top-20 sm:top-24 left-4 sm:left-12 md:left-24 z-20 pointer-events-none max-w-[min(100%,20rem)] sm:max-w-[min(100%,28rem)] pr-4">
         <Link
           href="/explore"
-          className="pointer-events-auto font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors mb-4 inline-block bg-[#050505]/90 p-2 border border-foreground/10"
+          className="pointer-events-auto font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors mb-3 sm:mb-4 inline-block bg-[#050505]/90 p-2 border border-foreground/10"
         >
           ← Explore hub
         </Link>
         <div className="pointer-events-none">
-          <h1 className="text-4xl sm:text-5xl md:text-[3.5rem] font-bold tracking-tighter leading-[0.95] text-foreground uppercase mb-2 drop-shadow-md">
+          <h1 className="text-3xl sm:text-5xl md:text-[3.5rem] font-bold tracking-tighter leading-[0.95] text-foreground uppercase mb-2 drop-shadow-md break-words">
             Topology
           </h1>
-          <p className="font-mono text-xs uppercase tracking-widest text-amber-500 bg-[#050505]/90 p-2 border border-foreground/10 w-fit">
-            Click any node to isolate connections
+          <p className="font-mono text-[10px] sm:text-xs uppercase tracking-widest text-amber-500 bg-[#050505]/90 p-2 border border-foreground/10 w-fit max-w-full">
+            {isMobile ? 'Pinch & tap nodes' : 'Click any node to isolate connections'}
           </p>
         </div>
       </div>
 
-      <main className="flex-1 min-h-0 w-full relative">
-        <div className="absolute inset-0 pt-16">
+      <main className="flex-1 min-h-0 w-full relative" ref={containerRef}>
+        <div className="absolute inset-0 pt-14 sm:pt-16">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -175,14 +212,19 @@ export default function ExploreTopologyPage() {
             onEdgesChange={onEdgesChange}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
+            onInit={onInit}
             fitView
-            fitViewOptions={{ padding: 0.2 }}
-            minZoom={0.1}
+            fitViewOptions={{ padding: isMobile ? 0.45 : 0.2 }}
+            minZoom={0.05}
+            maxZoom={2}
             proOptions={{ hideAttribution: true }}
             className="bg-transparent"
           >
             <Background color="rgba(255,255,255,0.02)" gap={40} size={1} />
-            <Controls className="fill-foreground border-foreground/20 bg-[#050505] opacity-50 hover:opacity-100" />
+            <Controls
+              position={isMobile ? 'bottom-right' : 'bottom-left'}
+              className="!bottom-[calc(4.5rem+env(safe-area-inset-bottom))] sm:!bottom-4 fill-foreground border-foreground/20 bg-[#050505] opacity-70 hover:opacity-100"
+            />
           </ReactFlow>
         </div>
       </main>

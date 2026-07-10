@@ -11,7 +11,7 @@ export default function SessionGate({
   message?: string;
 }) {
   return (
-    <div className="min-h-[60dvh] flex items-center justify-center px-6 sm:px-12 md:px-24 pt-24 pb-24">
+    <div className="min-h-[50dvh] sm:min-h-[60dvh] flex items-center justify-center px-4 sm:px-12 md:px-24 pt-20 sm:pt-24 pb-safe">
       <div className="max-w-md w-full border border-foreground/20 bg-[#050505]/90 p-8 space-y-6 text-center">
         <p className="font-mono text-[10px] uppercase tracking-widest text-amber-500">[ Access gated ]</p>
         <h1 className="font-mono text-sm uppercase tracking-widest text-foreground">{title}</h1>

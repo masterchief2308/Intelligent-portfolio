@@ -42,13 +42,16 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
-    overscroll-behavior-y: none;
-  }
   html {
     @apply font-sans antialiased;
     scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+  body {
+    @apply bg-background text-foreground;
+    overscroll-behavior-y: none;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
   
   /* Force hide Next.js dev indicator without restarting server */
@@ -58,10 +61,28 @@
 }
 
 @layer utilities {
+  .pt-safe {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
   .pb-safe {
     padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
   }
+  .pl-safe {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+  .pr-safe {
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+  .inset-safe {
+    top: max(0.75rem, env(safe-area-inset-top));
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: max(0.75rem, env(safe-area-inset-left));
+  }
   .bottom-safe {
     bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .min-h-screen-safe {
+    min-height: 100svh;
   }
 }
