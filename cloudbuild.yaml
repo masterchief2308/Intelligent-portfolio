@@ -46,10 +46,14 @@ steps:
       - '0'
       - '--max-instances'
       - '1'
+      - '--concurrency'
+      - '20'
       - '--timeout'
       - '300'
+      # /health only — probes stop after success and do NOT run continuously.
+      # Do NOT probe /ready: that forced MiniLM+BM25 load before accepting traffic.
       - '--startup-probe'
-      - 'httpGet.path=/ready,httpGet.port=8080,initialDelaySeconds=2,timeoutSeconds=3,periodSeconds=3,failureThreshold=15'
+      - 'httpGet.path=/health,httpGet.port=8080,initialDelaySeconds=0,timeoutSeconds=2,periodSeconds=5,failureThreshold=12'
       - '--set-secrets=/secrets/.env=PORTFOLIO_SECRETS:latest'
 
 images:

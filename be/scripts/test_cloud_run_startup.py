@@ -3,24 +3,15 @@
 Simulate Cloud Run startup checks locally.
 
 What this proves:
-  - Time until GET /ready returns 200 (embeddings + Qdrant initialized)
-  - Whether traffic sent before /ready gets 503 (warming) vs 200
+  - Time until GET /health returns 200 (process accepts traffic)
+  - Optional deep /ready status (embeddings loaded — lazy, does not gate Cloud Run)
 
 What this does NOT prove:
   - Zero 429 forever — SlowAPI and Gemini quotas can still return 429 by design.
 
 Usage:
-  # Against a running server (PORT=8080 like Cloud Run):
   python scripts/test_cloud_run_startup.py --url http://localhost:8080
-
-  # Also hammer a rate-limited route to show app-level 429:
   python scripts/test_cloud_run_startup.py --url http://localhost:8080 --burst-personalize 6
-
-Docker (same memory + port as cloudbuild.yaml):
-  docker build -t portfolio-backend-test ./be
-  docker run --rm --memory=2g -e PORT=8080 -p 8080:8080 --env-file ./be/.env portfolio-backend-test
-  # In another terminal:
-  python be/scripts/test_cloud_run_startup.py --url http://localhost:8080
 """
 
 from __future__ import annotations
@@ -33,11 +24,11 @@ import urllib.error
 import urllib.request
 
 
-# Mirrors cloudbuild.yaml startup probe
-PROBE_INITIAL_DELAY_S = 5
+# Mirrors cloudbuild.yaml startup probe (/health — cheap, no embedding load)
+PROBE_INITIAL_DELAY_S = 0
 PROBE_PERIOD_S = 5
-PROBE_TIMEOUT_S = 5
-PROBE_FAILURE_THRESHOLD = 24
+PROBE_TIMEOUT_S = 2
+PROBE_FAILURE_THRESHOLD = 12
 MAX_STARTUP_S = PROBE_INITIAL_DELAY_S + PROBE_PERIOD_S * PROBE_FAILURE_THRESHOLD
 
 
@@ -55,16 +46,17 @@ def http_get(url: str, timeout: float = 5.0) -> tuple[int, str, dict]:
 
 
 def wait_for_ready(base_url: str) -> dict:
-    """Poll /ready like Cloud Run startup probe."""
-    ready_url = f"{base_url.rstrip('/')}/ready"
+    """Poll /health like Cloud Run startup probe (embeddings load lazily on first RAG)."""
     health_url = f"{base_url.rstrip('/')}/health"
+    ready_url = f"{base_url.rstrip('/')}/ready"
 
     print(f"Cloud Run probe simulation: initialDelay={PROBE_INITIAL_DELAY_S}s, "
           f"period={PROBE_PERIOD_S}s, failureThreshold={PROBE_FAILURE_THRESHOLD}")
     print(f"Max startup window: {MAX_STARTUP_S}s")
-    print(f"Polling: {ready_url}\n")
+    print(f"Polling: {health_url}\n")
 
-    time.sleep(PROBE_INITIAL_DELAY_S)
+    if PROBE_INITIAL_DELAY_S:
+        time.sleep(PROBE_INITIAL_DELAY_S)
     started = time.perf_counter()
     attempts = 0
     history: list[dict] = []
@@ -73,38 +65,39 @@ def wait_for_ready(base_url: str) -> dict:
         attempts += 1
         t = time.perf_counter() - started
         try:
-            status, body, headers = http_get(ready_url, timeout=PROBE_TIMEOUT_S)
+            status, body, _ = http_get(health_url, timeout=PROBE_TIMEOUT_S)
         except Exception as e:
-            status, body, headers = 0, str(e), {}
-        entry = {"attempt": attempts, "elapsed_s": round(t, 2), "status": status}
-        history.append(entry)
+            status, body = 0, str(e)
+        history.append({"attempt": attempts, "elapsed_s": round(t, 2), "status": status})
+        print(f"  [{attempts:02d}] +{t:6.1f}s  health={status} body={body[:80]!r}")
 
         if status == 200:
-            print(f"  [{attempts:02d}] +{t:6.1f}s  READY 200")
             try:
                 payload = json.loads(body)
             except json.JSONDecodeError:
                 payload = {"raw": body[:200]}
+            try:
+                r_status, r_body, _ = http_get(ready_url, timeout=PROBE_TIMEOUT_S)
+                print(f"  deep /ready => {r_status} {r_body[:120]}")
+            except Exception as e:
+                r_status, r_body = 0, str(e)
             return {
                 "ready": True,
-                "elapsed_s": round(t, 2),
+                "elapsed_s": round(time.perf_counter() - started, 2),
                 "attempts": attempts,
                 "payload": payload,
                 "history": history,
+                "ready_probe": {"status": r_status, "body": r_body},
             }
-
-        label = "WARMING" if status == 503 else ("DOWN" if status == 0 else f"HTTP {status}")
-        print(f"  [{attempts:02d}] +{t:6.1f}s  {label} {status or ''}")
 
         if attempts < PROBE_FAILURE_THRESHOLD:
             time.sleep(PROBE_PERIOD_S)
 
-    # Fallback: is process alive at all?
+    h_status = 0
     try:
         h_status, _, _ = http_get(health_url, timeout=PROBE_TIMEOUT_S)
     except Exception:
-        h_status = 0
-
+        pass
     return {
         "ready": False,
         "elapsed_s": round(time.perf_counter() - started, 2),
@@ -150,25 +143,21 @@ def main() -> int:
         "--burst-personalize",
         type=int,
         default=0,
-        help="After ready, send N personalize requests to demo SlowAPI 429",
+        help="After health OK, send N personalize requests to demo SlowAPI 429",
     )
     args = parser.parse_args()
 
     print("=" * 60)
-    print("IMPORTANT: Nothing guarantees zero 429 responses.")
-    print("This script measures startup readiness (503 -> 200), not quota limits.")
+    print("Startup probe is /health (cheap). Embeddings load on first RAG call.")
     print("=" * 60 + "\n")
 
     result = wait_for_ready(args.url)
 
     print("\n--- Summary ---")
     if result["ready"]:
-        print(f"READY in {result['elapsed_s']}s after {result['attempts']} probe(s)")
+        print(f"HEALTH OK in {result['elapsed_s']}s after {result['attempts']} probe(s)")
         print(f"Payload: {result['payload']}")
-        print("\nCloud Run would route traffic only after this point.")
-        print("That reduces cold-start failures — but does NOT remove:")
-        print("  - SlowAPI limits (e.g. /api/personalize 5/min)")
-        print("  - Gemini API quota 429s")
+        print("Cloud Run routes traffic after /health — embeddings stay lazy.")
     else:
         print(f"NOT READY within {MAX_STARTUP_S}s window")
         print(f"Last health check: {result.get('health_status')}")

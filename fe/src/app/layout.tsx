@@ -37,11 +37,12 @@ export default async function RootLayout({
 }>) {
   const queryClient = getQueryClient();
   
+  // Cache portfolio for 1h — `no-store` was waking Cloud Run on every SSR (main cost driver).
   await queryClient.prefetchQuery({
     queryKey: ['portfolio', undefined],
     queryFn: async () => {
       const url = (process.env.NEXT_PUBLIC_API_URL || 'https://intelligent-portfolio-backend-7ubimlsttq-el.a.run.app') + '/api/portfolio';
-      const res = await fetch(url, { cache: 'no-store' });
+      const res = await fetch(url, { next: { revalidate: 3600 } });
       if (!res.ok) throw new Error('Failed to fetch portfolio');
       return res.json();
     }

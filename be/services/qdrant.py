@@ -67,6 +67,11 @@ class QdrantService:
                 self._dense_vector_name,
                 self._sparse_vector_name,
             )
+            # Collection create is cheap when it already exists; only runs after model load
+            try:
+                self.ensure_collection()
+            except Exception as e:
+                logger.warning("ensure_collection after init failed: %s", e)
         except Exception as e:
             self._ready = False
             logger.warning("Qdrant unavailable: %s", e)

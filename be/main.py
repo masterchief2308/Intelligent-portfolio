@@ -3,7 +3,6 @@ FastAPI application entrypoint for the Intelligent Portfolio backend.
 Provides all REST API routes with rate limiting and security hardening.
 """
 
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -41,11 +40,15 @@ from slowapi import _rate_limit_exceeded_handler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle events: startup and shutdown."""
+    """Lifecycle events: startup and shutdown.
+
+    Keep startup CHEAP: do not load embedding models here.
+    Every cold start that eagerly warmed MiniLM+BM25 billed 30–60s+ of 2Gi CPU
+    even for light traffic (/api/portfolio). Qdrant/FastEmbed init on first RAG use.
+    """
     settings = get_settings()
     logger.info("Starting up Intelligent Portfolio backend v%s", settings.BACKEND_VERSION)
 
-    # Initialize services
     import os
     os.environ["GEMINI_API_KEY"] = settings.GEMINI_API_KEY
     os.environ["GOOGLE_API_KEY"] = settings.GEMINI_API_KEY
@@ -54,31 +57,10 @@ async def lifespan(app: FastAPI):
         use_firestore=settings.USE_FIRESTORE,
         project_id=settings.FIRESTORE_PROJECT_ID,
     )
-    
-    # Pre-init Qdrant (creates collection if missing)
-    qdrant = get_qdrant(
-        url=settings.QDRANT_URL,
-        api_key=settings.QDRANT_API_KEY,
-    )
-    qdrant.ensure_collection()
-    # resume_pool created lazily on first recruiter upload — saves startup time
-
-    # Non-blocking TTL purge — don't delay readiness
-    async def _purge_expired_resumes() -> None:
-        try:
-            await asyncio.to_thread(
-                qdrant.purge_expired_resumes,
-                ttl_hours=settings.RESUME_POOL_TTL_HOURS,
-            )
-            logger.info("Purged expired resumes (TTL=%dh)", settings.RESUME_POOL_TTL_HOURS)
-        except Exception as e:
-            logger.warning("Resume purge failed: %s", e)
-
-    asyncio.create_task(_purge_expired_resumes())
+    # Qdrant + resume purge: deferred until first retrieval/upload (see services/qdrant.py)
 
     yield
 
-    # Shutdown
     logger.info("Shutting down backend...")
     scraper = get_scraper()
     await scraper.close()
@@ -138,18 +120,30 @@ app.include_router(recruiter_router, tags=["Recruiter"])
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """Liveness probe — process is up."""
+    """Liveness / Cloud Run startup probe — process accepts traffic (cheap, no model load)."""
     return {"status": "ok", "version": get_settings().BACKEND_VERSION}
 
 
 @app.get("/ready", tags=["Health"])
 async def readiness_check():
-    """Readiness probe — embeddings loaded and Qdrant client initialized."""
+    """Optional deep check: embeddings + Qdrant initialized.
+
+    Not used as Cloud Run startup probe (that would force model load on every cold start).
+    Returns ready=true once a RAG path has warmed the client; otherwise warming.
+    """
     settings = get_settings()
     qdrant = get_qdrant(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY)
     if not qdrant.is_ready():
         return JSONResponse(
-            status_code=503,
-            content={"status": "warming", "version": settings.BACKEND_VERSION},
+            status_code=200,
+            content={
+                "status": "warming",
+                "embeddings": False,
+                "version": settings.BACKEND_VERSION,
+            },
         )
-    return {"status": "ready", "version": settings.BACKEND_VERSION}
+    return {
+        "status": "ready",
+        "embeddings": True,
+        "version": settings.BACKEND_VERSION,
+    }
