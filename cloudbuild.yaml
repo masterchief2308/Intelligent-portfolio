@@ -4,7 +4,7 @@ steps:
     entrypoint: 'bash'
     args: ['-c', 'docker pull asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:latest || exit 0']
 
-  # 1. Build and tag as :latest only (avoids accumulating per-commit images in Artifact Registry)
+  # 1. Build :latest (no HF model download at build time — loads on first RAG request)
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -57,6 +57,9 @@ steps:
 
 images:
   - 'asia-south1-docker.pkg.dev/$PROJECT_ID/portfolio-repo/intelligent-portfolio-backend:latest'
+
+# Playwright install can exceed the default 10m Cloud Build timeout
+timeout: 1200s
 
 options:
   logging: CLOUD_LOGGING_ONLY

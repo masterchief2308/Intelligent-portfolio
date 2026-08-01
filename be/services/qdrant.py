@@ -10,7 +10,7 @@ from typing import Any, Optional
 
 from qdrant_client import QdrantClient, models
 
-# Use image-baked caches when present (see Dockerfile warmup_embed_models.py)
+# Use image/runtime caches when present (models download on first RAG use, not Docker build)
 os.environ.setdefault("HF_HOME", "/app/.cache/huggingface")
 os.environ.setdefault("FASTEMBED_CACHE_PATH", "/app/.cache/fastembed")
 
